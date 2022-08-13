@@ -8,7 +8,7 @@ const int dispwidth = 1080;
 const int dispheight = 720;
 const int dispdist = 1024;
 
-const double camspeed = 4;
+const double camspeed = 16;
 const double camrotspeed = 0.025;
 
 
@@ -21,9 +21,8 @@ SDL_Surface* screenSurface = NULL;
 //The window renderer
 SDL_Renderer* renderer = NULL;
 
-class point{
-    public:
-        double pos[3];
+struct point{
+    double pos[3];
 };
 
 
@@ -278,22 +277,22 @@ class camera{
                         intersectpoint.pos[dimension] = t*linevect[dimension]+thepolygon[linenum].pos[dimension];
                     }
                     if ((a*thepolygon[linenum].pos[0]+b*thepolygon[linenum].pos[1]+c*thepolygon[linenum].pos[2]+d > 0) == keepbig){// whether we keep start or end point
-                        point startdot;
+                        point startpoint;
                         for (int dimension = 0;dimension < 3;dimension++){
-                            startdot.pos[dimension] = thepolygon[linenum].pos[dimension];
+                            startpoint.pos[dimension] = thepolygon[linenum].pos[dimension];
                         }
-                        newpolygon.push_back(startdot);
+                        newpolygon.push_back(startpoint);
                         newpolygon.push_back(intersectpoint);//here this end point is different to next one
                         numnewpoints = numnewpoints + 2;
 
                     }
                     else{
-                        point enddot;
+                        point endpoint;
                         for (int dimension = 0;dimension < 3;dimension++){
-                            enddot.pos[dimension] = thepolygon[secondpoint].pos[dimension];
+                            endpoint.pos[dimension] = thepolygon[secondpoint].pos[dimension];
                         }
                         newpolygon.push_back(intersectpoint);
-                        //newpolygon.push_back(enddot); // end dots should not be added as will be added later
+                        //newpolygon.push_back(endpoint); // end points should not be added as will be added later
                         numnewpoints = numnewpoints + 1;
 
                     }
@@ -312,14 +311,14 @@ class camera{
                         
                     if ((a*thepolygon[linenum].pos[0]+b*thepolygon[linenum].pos[1]+c*thepolygon[linenum].pos[2]+d > 0) == keepbig){// if whole line is on right side
                         //std::cout << "CAMERA" << a*thepolygon[linenum].pos[0]+b*thepolygon[linenum].pos[1]+c*thepolygon[linenum].pos[2]+d << "\n";
-                        point enddot;
-                        point startdot;
+                        point endpoint;
+                        point startpoint;
                         for (int dimension = 0;dimension < 3;dimension++){
-                            startdot.pos[dimension] = thepolygon[linenum].pos[dimension];
-                            enddot.pos[dimension] = thepolygon[secondpoint].pos[dimension];
+                            startpoint.pos[dimension] = thepolygon[linenum].pos[dimension];
+                            endpoint.pos[dimension] = thepolygon[secondpoint].pos[dimension];
                         }
-                        newpolygon.push_back(startdot);
-                        //newpolygon.push_back(enddot); // end dots should not be added as will be added later
+                        newpolygon.push_back(startpoint);
+                        //newpolygon.push_back(endpoint); // end points should not be added as will be added later
                         numnewpoints = numnewpoints + 1;
                     }
                     //else dont add a point as line out of clip
@@ -589,24 +588,89 @@ std::vector<road> maintrack;
 
 class face{ // a list of points in a order
     public:
+        std::vector<point>& allpoints;
         std::vector<int> pointnums;
-        std::vector<point> allpoints;
-        bool isinsideout = false;
-        double normal[3];
-
         int colour[3];
 
-
-        void givepoints(std::vector<point> newpoints){
-            allpoints.clear();
-
-            for (int i = 0;i < newpoints.size();i++){
-                allpoints.push_back(newpoints[i]);
+        face(
+            std::vector<point> &objectpoints,
+            std::vector<int> pointindices,
+            int facecolour[3]
+            ) :
+          allpoints(objectpoints),
+          pointnums(pointindices),
+          isinsideout(false),
+          valid(false)
+        {
+            for (int i=0; i<3; i++) {
+                colour[i] = facecolour[i];
             }
 
+            getfacenormal();
         }
 
+        double pointdotnorm(double pointpos[3],double center[3]){
+            if (!valid) {
+                getfacenormal();
+            }
+            double pointdist = sqrt(((allpoints[pointnums[0]].pos[0])+center[0]-pointpos[0])*((allpoints[pointnums[0]].pos[0])+center[0]-pointpos[0])
+                                    +((allpoints[pointnums[0]].pos[1])+center[1]-pointpos[1])*((allpoints[pointnums[0]].pos[1])+center[1]-pointpos[1])
+                                    +((allpoints[pointnums[0]].pos[2])+center[2]-pointpos[2])*((allpoints[pointnums[0]].pos[2])+center[2]-pointpos[2]));
+            double thepointdotnorm = 0;
+            for (int i = 0;i < 3;i++){
+                thepointdotnorm += ((allpoints[pointnums[0]].pos[i])+center[i]-pointpos[i])*normal[i]/pointdist;
+            }
+
+            std::cout << thepointdotnorm << " point dot norm \n";
+
+            return thepointdotnorm;
+        }
+
+        void selfrender(double *center) {
+            if (pointdotnorm(maincamera.selfpos,center) <= 0){
+                std::vector<point> currentpolygon;
+                for (int j = 0; j < pointnums.size();j++){// construct list of points of the polygon
+                    point nextpoint;
+                    nextpoint.pos[0] = allpoints[pointnums[j]].pos[0] + center[0];
+                    nextpoint.pos[1] = allpoints[pointnums[j]].pos[1] + center[1];
+                    nextpoint.pos[2] = allpoints[pointnums[j]].pos[2] + center[2];
+                    currentpolygon.push_back(nextpoint);
+                }
+
+                maincamera.preppolygon(currentpolygon,currentpolygon.size());
+
+                double lightpos[3];
+                lightpos[0] = 128;
+                lightpos[1] = -1024;
+                lightpos[2] = 0;
+
+                double brightness = 0.5-pointdotnorm(lightpos,center)/2;
+                std::cout << brightness << " brightness\n";
+
+                SDL_SetRenderDrawColor(renderer, colour[0]*brightness, colour[1]*brightness, colour[2]*brightness, 255);
+        
+                fillpoly(currentpolygon);
+            }
+        }
+
+        void invalidate() {
+            valid = false;
+        }
+
+        void setinsideout(bool insideout) {
+            isinsideout = insideout;
+            invalidate();
+        }
+
+    private:
+        double normal[3];
+        bool isinsideout;
+        bool valid;
+
         void getfacenormal(){
+            std::cout << allpoints[pointnums[0]].pos[0] << " " << allpoints[pointnums[0]].pos[1] << " " << allpoints[pointnums[0]].pos[2] << "\n";
+            std::cout << allpoints[pointnums[1]].pos[0] << " " << allpoints[pointnums[1]].pos[1] << " " << allpoints[pointnums[1]].pos[2] << "\n";
+            std::cout << allpoints[pointnums[2]].pos[0] << " " << allpoints[pointnums[2]].pos[1] << " " << allpoints[pointnums[2]].pos[2] << "\n";
 
             double vect1[3];
             double vect2[3];
@@ -636,25 +700,18 @@ class face{ // a list of points in a order
                 }
                 
             }
-
             
             double normlen = sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
             for (int i = 0; i < 3;i++){
                 normal[i] = normal[i]/normlen;
             }
 
+            valid = true;
+
+            std::cout << "normal " << normal[0] << " " << normal[1] << " " << normal[2] << "\n";
+
         }
 
-        double pointdotnorm(double pointpos[3],double center[3]){
-            double pointdist = sqrt(((allpoints[pointnums[0]].pos[0])+center[0]-pointpos[0])*((allpoints[pointnums[0]].pos[0])+center[0]-pointpos[0])
-                                    +((allpoints[pointnums[0]].pos[1])+center[1]-pointpos[1])*((allpoints[pointnums[0]].pos[1])+center[1]-pointpos[1])
-                                    +((allpoints[pointnums[0]].pos[2])+center[2]-pointpos[2])*((allpoints[pointnums[0]].pos[2])+center[2]-pointpos[2]));
-            double thepointdotnorm = 0;
-            for (int i = 0;i < 3;i++){
-                thepointdotnorm += ((allpoints[pointnums[0]].pos[i])+center[i]-pointpos[i])*normal[i]/pointdist;
-            }
-            return thepointdotnorm;
-        }
 
 
 };
@@ -673,35 +730,13 @@ class object{ // a thing which will be show contains points and connections and 
 
         void objectrender(){
             std::cout << "start render\n";
+            std::cout << points[0].pos[0] << " " << points[0].pos[1] << " " << points[0].pos[2] << "\n";
+            std::cout << points[1].pos[0] << " " << points[1].pos[1] << " " << points[1].pos[2] << "\n";
+            std::cout << points[2].pos[0] << " " << points[2].pos[1] << " " << points[2].pos[2] << "\n";
+            std::cout << points[3].pos[0] << " " << points[3].pos[1] << " " << points[3].pos[2] << "\n";
+
             for (int i = 0; i < faces.size();i++){
-                faces[i].getfacenormal();
-
-                
-                if (faces[i].pointdotnorm(maincamera.selfpos,center) < 0){
-                    std::vector<point> currentpolygon;
-                    for (int j = 0; j < faces[i].pointnums.size();j++){// construct list of points of the polygon
-                        point nextpoint;
-                        nextpoint.pos[0] = points[faces[i].pointnums[j]].pos[0] + center[0];
-                        nextpoint.pos[1] = points[faces[i].pointnums[j]].pos[1] + center[1];
-                        nextpoint.pos[2] = points[faces[i].pointnums[j]].pos[2] + center[2];
-                        currentpolygon.push_back(nextpoint);
-                    }
-
-                    maincamera.preppolygon(currentpolygon,currentpolygon.size());
-
-                    double lightpos[3];
-                    lightpos[0] = 128;
-                    lightpos[1] = -1024;
-                    lightpos[2] = 0;
-
-                    double brightness = 0.5-faces[i].pointdotnorm(lightpos,center)/2;
-                    std::cout << brightness << " brightness\n";
-
-                    SDL_SetRenderDrawColor(renderer, faces[i].colour[0]*brightness, faces[i].colour[1]*brightness, faces[i].colour[2]*brightness, 255);
-            
-                    fillpoly(currentpolygon);
-                }
-
+                faces[i].selfrender(center);
             }
 
         }
@@ -745,6 +780,10 @@ class object{ // a thing which will be show contains points and connections and 
                 points[i].pos[1] = endy;
                 points[i].pos[2] = endz;
                 //std::cout << (endx*endx+endy*endy+endz*endz) << "\n";
+            }
+
+            for (auto &f: faces) {
+                f.invalidate();
             }
         }
 };
@@ -803,39 +842,16 @@ class player{
 
             playercar.points.push_back(carpoint);// top
 
+            int red[3] = {255, 0, 0};
 
-            face carface;
-            carface.pointnums.push_back(0);
-            carface.pointnums.push_back(1);
-            carface.pointnums.push_back(3);
-            
-            playercar.faces.push_back(carface);
-            carface.pointnums.clear();
+            face carface1(playercar.points, {0, 1, 3}, red);
+            playercar.faces.push_back(carface1);
 
+            face carface2(playercar.points, {0, 2, 3}, red);
+            playercar.faces.push_back(carface2);
 
-            carface.pointnums.push_back(0);
-            carface.pointnums.push_back(2);
-            carface.pointnums.push_back(3);
-            
-            playercar.faces.push_back(carface);
-            carface.pointnums.clear();
-
-
-            carface.pointnums.push_back(1);
-            carface.pointnums.push_back(2);
-            carface.pointnums.push_back(3);
-            
-            playercar.faces.push_back(carface);
-            carface.pointnums.clear();
-
-
-            for (int i = 0; i < 4; i++){
-                playercar.faces[i].givepoints(playercar.points);
-                playercar.faces[i].colour[0] = 255;
-                playercar.faces[i].colour[1] = 0;
-                playercar.faces[i].colour[2] = 0;
-            }
-
+            face carface3(playercar.points, {1, 2, 3}, red);
+            playercar.faces.push_back(carface3);
 
         }
 
@@ -853,7 +869,7 @@ class player{
 
             double changevect[3];
             for (int dimension = 0; dimension < 3;dimension++){
-                changevect[dimension] = selfpos[dimension] - maincamera.selfpos[dimension] - pointing[dimension]*1024;
+                changevect[dimension] = selfpos[dimension] - maincamera.selfpos[dimension] - pointing[dimension]*256;
                 needtomove[dimension] = 0;
                 
                 playercar.center[dimension] = selfpos[dimension];
@@ -870,8 +886,28 @@ class player{
         void rotate(double x, double y){
 
             maincamera.rotate(x , y);
+
+            double changex = maincamera.xangle - playeranglex;
+            double changey = maincamera.yangle - playerangley;
+
+            if (changex != 0){
+                double rotvect[3];
+                rotvect[0] = 0;
+                rotvect[1] = 1;
+                rotvect[2] = 0;
+                playercar.selfrotate(rotvect,-changex);
+            }
+            /*if (changey != 0){
+                double rotvect[3];
+                rotvect[0] = cos(playeranglex);
+                rotvect[1] = 0;
+                rotvect[2] = sin(playeranglex);
+                playercar.selfrotate(rotvect,changey);
+
+            }*/
+
             playeranglex = maincamera.xangle;
-            playerangley += y;
+            playerangley = maincamera.yangle;
 
 
             for (int i = 0;i < 3;i++){
@@ -1136,7 +1172,6 @@ int main(int argc, char **argv)
 
 
             mainplayer.selfrender();
-            
 
 
 
