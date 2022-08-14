@@ -107,6 +107,70 @@ void fillpoly(std::vector<point> polygon){
 }
 
 
+
+
+bool isinpoly(std::vector<point> polygon, point querypoint){ /* this works like  fill poly but only on one line 
+                                                            it asumes that the polygon is projected onto the zx plane
+                                                            in future will change so point project onto polygon first*/
+
+
+    double i = querypoint.pos[2];
+
+    std::vector<int> intersections;
+
+        
+    for (int j = 0; j < polygon.size();j++){
+        int otherpoint = (j+1)%polygon.size();
+        if ((polygon[j].pos[2] < i && polygon[otherpoint].pos[2] > i) 
+            || (polygon[j].pos[2] > i && polygon[otherpoint].pos[2] < i)){// if there is an intersection
+
+            if (abs(polygon[j].pos[2]-polygon[otherpoint].pos[2]) < 1){// almost straight up/ down
+                intersections.push_back(polygon[j].pos[0]);
+            }
+            else{
+                double m = (polygon[j].pos[0]-polygon[otherpoint].pos[0])/(polygon[j].pos[2]-polygon[otherpoint].pos[2]);
+                intersections.push_back(polygon[j].pos[0]+m*(i-polygon[j].pos[2]));
+            }
+            
+        }
+    }
+
+    
+    bool parity = false;
+    int intersectionssize = intersections.size();
+    long currentpoint = -1000000000;
+    if (intersectionssize > 1){
+        for (int j = 0; j < intersections.size();j++){
+            long nextpoint = 1000000000;
+            for (int k = 0; k < intersections.size();k++){
+                if (intersections[k] < nextpoint && intersections[k] > currentpoint){
+                    nextpoint = intersections[k];
+                }
+                
+            }
+            if (querypoint.pos[0] >= currentpoint && nextpoint >= querypoint.pos[0]){
+                if (parity && nextpoint != 1000000000){// && j+1 != intersections.size()){
+                    return true;
+                }
+                else{
+                    return false;
+                }
+            }
+
+            currentpoint = nextpoint;
+            parity = !parity;
+
+        }
+    }
+
+
+    return false;
+
+
+
+}
+
+
 class camera{
     public:
         double selfpos[3];
@@ -427,6 +491,8 @@ class road{
         double length;
         double spacing;
         double width;
+        std::vector<point> leftpoints;
+        std::vector<point> rightpoints;
 
         point getposofroad(double ratio){ // this will give position of the road at a given fraction through it 0 giving start and 1 end
             std::vector<point> laststagepoints;
@@ -459,39 +525,72 @@ class road{
         
         }
 
+        void getoutsidepoints(){
+            leftpoints.clear();
+            rightpoints.clear();
+
+
+            int segnum = 0;
+            for (double dist = 0;dist < length+spacing;dist += spacing){
+                segnum = segnum + 1;
+
+
+
+                double ratio = dist/length;
+                point nextpoint = getposofroad(ratio);
+
+
+                point slightlyfurtherpoint = getposofroad(ratio + 0.001);
+                point normal;
+                normal.pos[0] = -(slightlyfurtherpoint.pos[2]-nextpoint.pos[2]);
+                normal.pos[2] = (slightlyfurtherpoint.pos[0]-nextpoint.pos[0]);
+
+                double normlen = sqrt(normal.pos[0]*normal.pos[0]+normal.pos[2]*normal.pos[2]);
+
+                normal.pos[0] = width*normal.pos[0]/normlen;
+                normal.pos[2] = width*normal.pos[2]/normlen;
+
+                point nextleftpoint;
+                nextleftpoint.pos[0] = nextpoint.pos[0]+normal.pos[0];
+                nextleftpoint.pos[1] = 0;
+                nextleftpoint.pos[2] = nextpoint.pos[2]+normal.pos[2];
+                point nextrightpoint;
+                nextrightpoint.pos[0] = nextpoint.pos[0]-normal.pos[0];
+                nextleftpoint.pos[1] = 0;
+                nextrightpoint.pos[2] = nextpoint.pos[2]-normal.pos[2];
+
+
+                leftpoints.push_back(nextleftpoint);
+                rightpoints.push_back(nextrightpoint);
+
+            }
+
+        }
+
         void renderroad(){
+
+            getoutsidepoints();
+
+
+
             point lastpoint;
             lastpoint.pos[0] = points[0].pos[0];
             lastpoint.pos[1] = 0;
             lastpoint.pos[2] = points[0].pos[2];
             
 
-            point slightlyfurtherpoint = getposofroad(0.001);
-            point normal;
-            normal.pos[0] = -(slightlyfurtherpoint.pos[2]-lastpoint.pos[2]);
-            normal.pos[2] = (slightlyfurtherpoint.pos[0]-lastpoint.pos[0]);
-
-            double normlen = normal.pos[0]*normal.pos[0]+normal.pos[2]*normal.pos[2];
-
-            normal.pos[0] = width*normal.pos[0]/normlen;
-            normal.pos[2] = width*normal.pos[2]/normlen;
-
-            point lastleftpoint;
-            lastleftpoint.pos[0] = points[0].pos[0]+normal.pos[0];
-            lastleftpoint.pos[1] = 0;
-            lastleftpoint.pos[2] = points[0].pos[2]+normal.pos[2];
-            point lastrightpoint;
-            lastrightpoint.pos[0] = points[0].pos[0]-normal.pos[0];
-            lastleftpoint.pos[1] = 0;
-            lastrightpoint.pos[2] = points[0].pos[2]-normal.pos[2];
+            point startleftpoint = leftpoints[0];
+            
+            point startrightpoint = rightpoints[0];
+            
 
 
             double scaler = 128/length;
 
             SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth/2,(lastpoint.pos[2])*scaler+dispheight/2,
-                                (lastleftpoint.pos[0])*scaler+dispwidth/2,(lastleftpoint.pos[2])*scaler+dispheight/2);
+                                (startleftpoint.pos[0])*scaler+dispwidth/2,(startleftpoint.pos[2])*scaler+dispheight/2);
             SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth/2,(lastpoint.pos[2])*scaler+dispheight/2,
-                                (lastrightpoint.pos[0])*scaler+dispwidth/2,(lastrightpoint.pos[2])*scaler+dispheight/2);
+                                (startrightpoint.pos[0])*scaler+dispwidth/2,(startrightpoint.pos[2])*scaler+dispheight/2);
 
 
             int segnum = 0;
@@ -511,31 +610,24 @@ class road{
 
                 SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth/2,(lastpoint.pos[2])*scaler+dispheight/2,
                                         (nextpoint.pos[0])*scaler+dispwidth/2,(nextpoint.pos[2])*scaler+dispheight/2);
-                //std::cout << lastpoint.pos[0] << " " << lastpoint.pos[2] << " " << nextpoint.pos[0] << " " << nextpoint.pos[2] << "\n";
-
-                point slightlyfurtherpoint = getposofroad(ratio+0.001);
-                normal.pos[0] = -(slightlyfurtherpoint.pos[2]-nextpoint.pos[2]);
-                normal.pos[2] = (slightlyfurtherpoint.pos[0]-nextpoint.pos[0]);
-
-                normlen = normal.pos[0]*normal.pos[0]+normal.pos[2]*normal.pos[2];
-
-                normal.pos[0] = width*normal.pos[0]/normlen;
-                normal.pos[2] = width*normal.pos[2]/normlen;
+                
                 
 
-                SDL_RenderDrawLine(renderer,(nextpoint.pos[0])*scaler+dispwidth/2,(nextpoint.pos[2])*scaler+dispheight/2,
-                                    (nextpoint.pos[0]+normal.pos[0])*scaler+dispwidth/2,(nextpoint.pos[2]+normal.pos[2])*scaler+dispheight/2);
-                SDL_RenderDrawLine(renderer,(nextpoint.pos[0])*scaler+dispwidth/2,(nextpoint.pos[2])*scaler+dispheight/2,
-                                    (nextpoint.pos[0]-normal.pos[0])*scaler+dispwidth/2,(nextpoint.pos[2]-normal.pos[2])*scaler+dispheight/2);
+                point newleftpoint = leftpoints[segnum];
+                
+                point newrightpoint = rightpoints[segnum];
 
-                point newleftpoint;
-                newleftpoint.pos[0] = nextpoint.pos[0]+normal.pos[0];
-                newleftpoint.pos[1] = 0;
-                newleftpoint.pos[2] = nextpoint.pos[2]+normal.pos[2];
-                point newrightpoint;
-                newrightpoint.pos[0] = nextpoint.pos[0]-normal.pos[0];
-                newrightpoint.pos[1] = 0;
-                newrightpoint.pos[2] = nextpoint.pos[2]-normal.pos[2];
+                point lastleftpoint = leftpoints[segnum-1];
+
+                point lastrightpoint = rightpoints[segnum-1];
+
+                SDL_RenderDrawLine(renderer,(nextpoint.pos[0])*scaler+dispwidth/2,(nextpoint.pos[2])*scaler+dispheight/2,
+                                (newleftpoint.pos[0])*scaler+dispwidth/2,(newleftpoint.pos[2])*scaler+dispheight/2);
+                SDL_RenderDrawLine(renderer,(nextpoint.pos[0])*scaler+dispwidth/2,(nextpoint.pos[2])*scaler+dispheight/2,
+                                (newrightpoint.pos[0])*scaler+dispwidth/2,(newrightpoint.pos[2])*scaler+dispheight/2);
+
+                
+                
 
 
                 std::vector<point> newpolygon;
@@ -543,6 +635,11 @@ class road{
                 newpolygon.push_back(lastrightpoint);
                 newpolygon.push_back(newrightpoint);
                 newpolygon.push_back(newleftpoint);
+
+                //std::cout << leftpoints[segnum].pos[0] << " " << leftpoints[segnum].pos[2] << " left\n";
+                //std::cout << rightpoints[segnum].pos[0] << " " << rightpoints[segnum].pos[2] << " right\n";
+                //std::cout << leftpoints[segnum-1].pos[0] << " " << leftpoints[segnum-1].pos[2] << " left\n";
+                //std::cout << rightpoints[segnum-1].pos[0] << " " << rightpoints[segnum-1].pos[2] << " right\n";
 
 
                 maincamera.preppolygon(newpolygon,4);
@@ -567,19 +664,59 @@ class road{
                 lastpoint.pos[0] = nextpoint.pos[0];
                 lastpoint.pos[1] = 0;
                 lastpoint.pos[2] = nextpoint.pos[2];
-
-                lastleftpoint.pos[0] = newleftpoint.pos[0];
-                lastleftpoint.pos[1] = 0;
-                lastleftpoint.pos[2] = newleftpoint.pos[2];
-
-                lastrightpoint.pos[0] = newrightpoint.pos[0];
-                lastrightpoint.pos[1] = 0;
-                lastrightpoint.pos[2] = newrightpoint.pos[2];
                 
 
             }
             //std::cout << "\n";
         }
+
+        bool isontrack(double givenpos[3]){// a rough aproximate answer to is a point on the road ignores height
+
+            getoutsidepoints();
+
+            point givenpospoint;
+            givenpospoint.pos[0] = givenpos[0];
+            givenpospoint.pos[1] = givenpos[1];
+            givenpospoint.pos[2] = givenpos[2];
+
+
+            int segnum = 0;
+            for (double dist = 0;dist < length+spacing;dist += spacing){
+
+                segnum = segnum + 1;
+
+                point newleftpoint = leftpoints[segnum];
+                
+                point newrightpoint = rightpoints[segnum];
+
+                point lastleftpoint = leftpoints[segnum-1];
+
+                point lastrightpoint = rightpoints[segnum-1];
+
+                std::vector<point> newpolygon;
+                newpolygon.push_back(lastleftpoint);
+                newpolygon.push_back(lastrightpoint);
+                newpolygon.push_back(newrightpoint);
+                newpolygon.push_back(newleftpoint);
+                if (isinpoly(newpolygon,givenpospoint)){
+                    return true;
+                }
+                //std::cout << segnum << "\n";
+
+                //std::cout << newleftpoint.pos[0] << " " << newleftpoint.pos[2] << "\n";
+                //std::cout << newrightpoint.pos[0] << " " << newrightpoint.pos[2] << "\n";
+                //std::cout << lastleftpoint.pos[0] << " " << lastleftpoint.pos[2] << "\n";
+                //std::cout << lastrightpoint.pos[0] << " " << lastrightpoint.pos[2] << "\n";
+
+            }
+
+            return false;
+
+
+        }
+
+
+
 };
 
 std::vector<road> maintrack;
@@ -621,7 +758,7 @@ class face{ // a list of points in a order
                 thepointdotnorm += ((allpoints[pointnums[0]].pos[i])+center[i]-pointpos[i])*normal[i]/pointdist;
             }
 
-            std::cout << thepointdotnorm << " point dot norm \n";
+            //std::cout << thepointdotnorm << " point dot norm \n";
 
             return thepointdotnorm;
         }
@@ -668,9 +805,9 @@ class face{ // a list of points in a order
         bool valid;
 
         void getfacenormal(){
-            std::cout << allpoints[pointnums[0]].pos[0] << " " << allpoints[pointnums[0]].pos[1] << " " << allpoints[pointnums[0]].pos[2] << "\n";
-            std::cout << allpoints[pointnums[1]].pos[0] << " " << allpoints[pointnums[1]].pos[1] << " " << allpoints[pointnums[1]].pos[2] << "\n";
-            std::cout << allpoints[pointnums[2]].pos[0] << " " << allpoints[pointnums[2]].pos[1] << " " << allpoints[pointnums[2]].pos[2] << "\n";
+            //std::cout << allpoints[pointnums[0]].pos[0] << " " << allpoints[pointnums[0]].pos[1] << " " << allpoints[pointnums[0]].pos[2] << "\n";
+            //std::cout << allpoints[pointnums[1]].pos[0] << " " << allpoints[pointnums[1]].pos[1] << " " << allpoints[pointnums[1]].pos[2] << "\n";
+            //std::cout << allpoints[pointnums[2]].pos[0] << " " << allpoints[pointnums[2]].pos[1] << " " << allpoints[pointnums[2]].pos[2] << "\n";
 
             double vect1[3];
             double vect2[3];
@@ -708,7 +845,7 @@ class face{ // a list of points in a order
 
             valid = true;
 
-            std::cout << "normal " << normal[0] << " " << normal[1] << " " << normal[2] << "\n";
+            //std::cout << "normal " << normal[0] << " " << normal[1] << " " << normal[2] << "\n";
 
         }
 
@@ -730,10 +867,10 @@ class object{ // a thing which will be show contains points and connections and 
 
         void objectrender(){
             std::cout << "start render\n";
-            std::cout << points[0].pos[0] << " " << points[0].pos[1] << " " << points[0].pos[2] << "\n";
-            std::cout << points[1].pos[0] << " " << points[1].pos[1] << " " << points[1].pos[2] << "\n";
-            std::cout << points[2].pos[0] << " " << points[2].pos[1] << " " << points[2].pos[2] << "\n";
-            std::cout << points[3].pos[0] << " " << points[3].pos[1] << " " << points[3].pos[2] << "\n";
+            //std::cout << points[0].pos[0] << " " << points[0].pos[1] << " " << points[0].pos[2] << "\n";
+            //std::cout << points[1].pos[0] << " " << points[1].pos[1] << " " << points[1].pos[2] << "\n";
+            //std::cout << points[2].pos[0] << " " << points[2].pos[1] << " " << points[2].pos[2] << "\n";
+            //std::cout << points[3].pos[0] << " " << points[3].pos[1] << " " << points[3].pos[2] << "\n";
 
             for (int i = 0; i < faces.size();i++){
                 faces[i].selfrender(center);
@@ -873,7 +1010,7 @@ class player{
                 needtomove[dimension] = 0;
                 
                 playercar.center[dimension] = selfpos[dimension];
-                std::cout << "car pos" << playercar.center[dimension] << "\n";
+                //std::cout << "car pos" << playercar.center[dimension] << "\n";
 
             }
             maincamera.move(changevect[0],changevect[1],changevect[2]);
@@ -917,7 +1054,7 @@ class player{
             pointing[2] = pointing[2];
 
 
-            std::cout << "pointing" << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
+            //std::cout << "pointing" << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
 
 
 
@@ -947,8 +1084,18 @@ player mainplayer;
 void renderground(){
 
     int horizon = dispdist*tan(maincamera.yangle)+dispheight/2; // height not matter as far enough away not matter
-
-    SDL_SetRenderDrawColor( renderer, 0x00, 0xff, 0x00, 0xFF );
+    bool iscarontrack = false;
+    for (int i = 0; i < maintrack.size(); i++){
+        if (maintrack[i].isontrack(mainplayer.selfpos)){
+            iscarontrack = true;
+        }
+    }
+    if (iscarontrack){
+        SDL_SetRenderDrawColor( renderer, 0x00, 0xff, 0x00, 0xFF );
+    }
+    else{
+        SDL_SetRenderDrawColor( renderer, 0xff, 0x00, 0xff, 0xFF );
+    }
     for (int i = horizon;i < dispheight;i++){
         SDL_RenderDrawLine(renderer , 0,i,dispwidth,i);
     }
@@ -1172,7 +1319,28 @@ int main(int argc, char **argv)
 
 
             mainplayer.selfrender();
+            double length = 2048;
+            double scaler = 128/length;
 
+            /*SDL_SetRenderDrawColor(renderer , 0, 0, 0, 255); // this shows on the map where it thinks is in the track but is quite slow so not used exept debug
+            for (double  i = -3036; i < 3036; i = i + 64){
+                for (double j = -3036; j < 3036; j = j + 64){
+                    //std::cout << j << "\n";
+                    double thispoint[3] = {i , 0 , j};
+                    
+                    bool isontrack = false;
+                    for (int k = 0; k < maintrack.size();k++){
+                        if (maintrack[k].isontrack(thispoint)){
+                            isontrack = true;
+                            //std::cout << i << " " << j << " hey look i found the track\n";
+                        }
+                    }
+                    if (isontrack){
+                        SDL_RenderDrawLine(renderer, i*scaler+dispwidth/2, j*scaler+dispheight/2, i*scaler+dispwidth/2 , j*scaler+dispheight/2);
+                        //std::cout << i*scaler+dispwidth/2 << " " << j*scaler+dispheight/2 << "\n";
+                    }
+                }
+            }*/
 
 
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
