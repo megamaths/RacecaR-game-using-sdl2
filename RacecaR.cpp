@@ -596,10 +596,10 @@ class road{
             int segnum = 0;
             for (double dist = spacing;dist < length+spacing;dist += spacing){
                 if (segnum%2 == 0){
-                    SDL_SetRenderDrawColor( renderer, 0x00, 0x00, 0x00, 0xFF);
+                    SDL_SetRenderDrawColor( renderer, 0x70, 0x70, 0x70, 0xFF);
                 }
                 else{
-                    SDL_SetRenderDrawColor( renderer, 0x80, 0x80, 0x80, 0xFF);
+                    SDL_SetRenderDrawColor( renderer, 0x90, 0x90, 0x90, 0xFF);
                 }
                 segnum = segnum + 1;
 
@@ -935,10 +935,12 @@ class player{
         double playeranglex;
         double playerangley;
 
+        double carspeed;
+        double momentum[3];
+
         double pointing[3];
 
         object playercar;
-
         
 
         player(){
@@ -951,6 +953,12 @@ class player{
             pointing[0] = 0;
             pointing[1] = 0;
             pointing[2] = 1;
+            playeranglex = 0;
+            playerangley = 0;
+            carspeed = 0;
+            momentum[0] = 0;
+            momentum[1] = 0;
+            momentum[2] = 0;
         }
 
         void makecar(){ // get the points needed to make the car and face construction
@@ -992,11 +1000,18 @@ class player{
 
         }
 
-        void premove(double x,double y,double z){// relative to player
+        void relmove(double x,double y,double z){// relative to player
             needtomove[1] = needtomove[1] + y;// height change not depend on the direction pointing
 
             needtomove[0] = needtomove[0] + x*cos(maincamera.xangle)-z*sin(maincamera.xangle);
             needtomove[2] = needtomove[2] + x*sin(maincamera.xangle)+z*cos(maincamera.xangle);
+        }
+
+        void premove(double x,double y,double z){
+            needtomove[0] = needtomove[0] + x;
+            needtomove[1] = needtomove[1] + y;
+            needtomove[2] = needtomove[2] + z;
+            
         }
 
         void move(){
@@ -1007,11 +1022,16 @@ class player{
             double changevect[3];
             for (int dimension = 0; dimension < 3;dimension++){
                 changevect[dimension] = selfpos[dimension] - maincamera.selfpos[dimension] - pointing[dimension]*256;
+                
+                momentum[dimension] = needtomove[dimension];
+                std::cout << needtomove[dimension] << " new momentum\n";
                 needtomove[dimension] = 0;
                 
                 playercar.center[dimension] = selfpos[dimension];
                 //std::cout << "car pos" << playercar.center[dimension] << "\n";
 
+
+                
             }
             maincamera.move(changevect[0],changevect[1],changevect[2]);
 
@@ -1060,7 +1080,89 @@ class player{
 
         }
 
+        void accelerate(double acceleration){
+
+            double roadtypemodifier = 1;
+            for (int i = 0 ; i < maintrack.size(); i++){
+                if (maintrack[i].isontrack(selfpos)){
+                    roadtypemodifier = 2;
+                }
+            }
+
+
+            acceleration = acceleration * roadtypemodifier;
+
+            carspeed = carspeed + acceleration;
+
+
+            momentum[0] = momentum[0] -acceleration*sin(maincamera.xangle);//+x*cos(maincamera.xangle); // x is drift
+            momentum[2] = momentum[2] +acceleration*cos(maincamera.xangle);//+x*sin(maincamera.xangle);
+            std::cout << momentum[0] << " " << momentum[1] << " " << momentum[2] << " momentum\n";
+
+            double speed = sqrt(momentum[0]*momentum[0]/*+momentum[1]*momentum[1]*/+momentum[2]*momentum[2]);
+            if (speed > camspeed*roadtypemodifier){
+                momentum[0] = momentum[0] *camspeed/speed;
+                momentum[1] = momentum[1] *camspeed/speed;
+                momentum[2] = momentum[2] *camspeed/speed;
+            }
+
+            if (carspeed > camspeed*roadtypemodifier){
+                carspeed = camspeed*roadtypemodifier;
+            }
+
+        }
+
+        void speedcheck(){ // this works out friction and stuff on the car and slows it
+            double frictionco = 0.001;
+            for (int i = 0 ; i < maintrack.size(); i++){
+                if (maintrack[i].isontrack(selfpos)){
+                    frictionco = 0.002;
+                }
+            }
+
+            double speed = sqrt(momentum[0]*momentum[0]/*+momentum[1]*momentum[1]*/+momentum[2]*momentum[2]);
+            if (speed == 0){
+
+            }
+            else if (speed > 0){
+                double newspeed = speed - (speed*speed+1)*frictionco;
+
+                momentum[0] = momentum[0]*newspeed/speed;
+                momentum[1] = momentum[1]*newspeed/speed;
+                momentum[2] = momentum[2]*newspeed/speed;
+            }
+            else{
+                double newspeed = speed + (speed*speed+1)*frictionco;
+
+                momentum[0] = momentum[0]*newspeed/speed;
+                momentum[1] = momentum[1]*newspeed/speed;
+                momentum[2] = momentum[2]*newspeed/speed;
+            }
+            
+
+            std::cout << carspeed << " carspeed\n";
+            if (carspeed > 0){
+                carspeed = carspeed - (carspeed*carspeed+1)*frictionco;
+            }
+            else{
+                carspeed = carspeed + (carspeed*carspeed+1)*frictionco;
+            }
+            std::cout << carspeed << " carspeed\n";
+
+        }
+
+
+
         void update(){
+
+
+
+            speedcheck();
+
+            premove(momentum[0],momentum[1],momentum[2]);
+
+
+            //relmove(0,0,carspeed);
             move();
 
             rotate(0,0);
@@ -1271,22 +1373,22 @@ int main(int argc, char **argv)
             
             if( currentKeyStates[ SDL_SCANCODE_W ] ){
                 std::cout << "W";
-                mainplayer.premove(0,0,camspeed);}
+                mainplayer.accelerate(1);}
             if( currentKeyStates[ SDL_SCANCODE_S ] ){
                 std::cout << "S";
-                mainplayer.premove(0,0,-camspeed);}
+                mainplayer.accelerate(-1);}
             if( currentKeyStates[ SDL_SCANCODE_A ] ){
                 std::cout << "A";
-                mainplayer.premove(-camspeed,0,0);}
+                mainplayer.relmove(-camspeed,0,0);}
             if( currentKeyStates[ SDL_SCANCODE_D ] ){
                 std::cout << "D";
-                mainplayer.premove(camspeed,0,0);}
+                mainplayer.relmove(camspeed,0,0);}
             if( currentKeyStates[ SDL_SCANCODE_Q ] ){
                 std::cout << "Q";
-                mainplayer.premove(0,-camspeed,0);}
+                mainplayer.relmove(0,-camspeed,0);}
             if( currentKeyStates[ SDL_SCANCODE_E ] ){
                 std::cout << "E";
-                mainplayer.premove(0,camspeed,0);}
+                mainplayer.relmove(0,camspeed,0);}
 
             if( currentKeyStates[ SDL_SCANCODE_LEFT ] ){
                 std::cout << "LEFT";
@@ -1344,6 +1446,7 @@ int main(int argc, char **argv)
 
 
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth / 2, mainplayer.selfpos[2]*scaler+dispheight/2);
             SDL_RenderDrawPoint(renderer, dispwidth / 2, dispheight/2);
             SDL_RenderPresent( renderer ); //update renderer ??
             SDL_Delay(1000/60);
