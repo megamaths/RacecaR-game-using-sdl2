@@ -74,7 +74,8 @@ void fillpoly(std::vector<point> polygon){
                 }
                 else{
                     double m = (polygon[j].pos[0]-polygon[otherpoint].pos[0])/(polygon[j].pos[1]-polygon[otherpoint].pos[1]);
-                    intersections.push_back(polygon[j].pos[0]+m*(i-polygon[j].pos[1]));
+                    double intersectpoint = polygon[j].pos[0]+m*(i-polygon[j].pos[1]);
+                    intersections.push_back(intersectpoint);
                 }
                 
             }
@@ -94,7 +95,10 @@ void fillpoly(std::vector<point> polygon){
                     
                 }
                 if (parity && nextpoint != dispwidth/2+25){// && j+1 != intersections.size()){
-                    SDL_RenderDrawLine(renderer,currentpoint+dispwidth/2,i+dispheight/2,nextpoint+dispwidth/2,i+dispheight/2);
+                    int rightpoint = nextpoint;
+                    int leftpoint = currentpoint;
+                    
+                    SDL_RenderDrawLine(renderer,leftpoint+dispwidth/2,i+dispheight/2,rightpoint+dispwidth/2,i+dispheight/2);
                 }
 
                 currentpoint = nextpoint;
@@ -109,65 +113,29 @@ void fillpoly(std::vector<point> polygon){
 
 
 
-bool isinpoly(std::vector<point> polygon, point querypoint){ /* this works like  fill poly but only on one line 
-                                                            it asumes that the polygon is projected onto the zx plane
-                                                            in future will change so point project onto polygon first*/
+bool isinpoly(std::vector<point> polygon, point querypoint){
+
+    bool firstside;
+    for (int i = 0;i < polygon.size();i++){
+        int j = (i+1) %polygon.size();
+
+        double side = ((polygon[j].pos[0] - polygon[i].pos[0]) * (querypoint.pos[2] - polygon[i].pos[2]) - 
+                        (polygon[j].pos[2] - polygon[i].pos[2]) * (querypoint.pos[0] - polygon[i].pos[0]));
 
 
-    double i = querypoint.pos[2];
-
-    std::vector<int> intersections;
-
-        
-    for (int j = 0; j < polygon.size();j++){
-        int otherpoint = (j+1)%polygon.size();
-        if ((polygon[j].pos[2] < i && polygon[otherpoint].pos[2] > i) 
-            || (polygon[j].pos[2] > i && polygon[otherpoint].pos[2] < i)){// if there is an intersection
-
-            if (abs(polygon[j].pos[2]-polygon[otherpoint].pos[2]) < 1){// almost straight up/ down
-                intersections.push_back(polygon[j].pos[0]);
-            }
-            else{
-                double m = (polygon[j].pos[0]-polygon[otherpoint].pos[0])/(polygon[j].pos[2]-polygon[otherpoint].pos[2]);
-                intersections.push_back(polygon[j].pos[0]+m*(i-polygon[j].pos[2]));
-            }
-            
+        //std::cout << polygon[i].pos[0] << " " << polygon[i].pos[2] << " point1\n";
+        //std::cout << polygon[j].pos[0] << " " << polygon[j].pos[2] << " point2\n";
+        //std::cout << querypoint.pos[0] << " " << querypoint.pos[2] << " pointq\n";
+        //std::cout << side << "\n";
+        if (i == 0){
+            firstside = (side > 0);
+        }
+        if ((side > 0) != firstside){
+            return false;
         }
     }
-
     
-    bool parity = false;
-    int intersectionssize = intersections.size();
-    long currentpoint = -1000000000;
-    if (intersectionssize > 1){
-        for (int j = 0; j < intersections.size();j++){
-            long nextpoint = 1000000000;
-            for (int k = 0; k < intersections.size();k++){
-                if (intersections[k] < nextpoint && intersections[k] > currentpoint){
-                    nextpoint = intersections[k];
-                }
-                
-            }
-            if (querypoint.pos[0] >= currentpoint && nextpoint >= querypoint.pos[0]){
-                if (parity && nextpoint != 1000000000){// && j+1 != intersections.size()){
-                    return true;
-                }
-                else{
-                    return false;
-                }
-            }
-
-            currentpoint = nextpoint;
-            parity = !parity;
-
-        }
-    }
-
-
-    return false;
-
-
-
+    return true;
 }
 
 
@@ -502,6 +470,7 @@ class road{
                     for (int j = 0; j < points.size()-1;j++){
                         point newpoint;
                         newpoint.pos[0] = (1-ratio)*points[j].pos[0]+ratio*points[j+1].pos[0];
+                        newpoint.pos[1] = (1-ratio)*points[j].pos[1]+ratio*points[j+1].pos[1];
                         newpoint.pos[2] = (1-ratio)*points[j].pos[2]+ratio*points[j+1].pos[2];
                         newpoints.push_back(newpoint);
                     }
@@ -510,6 +479,7 @@ class road{
                     for (int j = 0; j < points.size()-1;j++){
                         point newpoint;
                         newpoint.pos[0] = (1-ratio)*laststagepoints[j].pos[0]+ratio*laststagepoints[j+1].pos[0];
+                        newpoint.pos[1] = (1-ratio)*laststagepoints[j].pos[1]+ratio*laststagepoints[j+1].pos[1];
                         newpoint.pos[2] = (1-ratio)*laststagepoints[j].pos[2]+ratio*laststagepoints[j+1].pos[2];
                         newpoints.push_back(newpoint);
                     }
@@ -552,11 +522,11 @@ class road{
 
                 point nextleftpoint;
                 nextleftpoint.pos[0] = nextpoint.pos[0]+normal.pos[0];
-                nextleftpoint.pos[1] = 0;
+                nextleftpoint.pos[1] = nextpoint.pos[1];
                 nextleftpoint.pos[2] = nextpoint.pos[2]+normal.pos[2];
                 point nextrightpoint;
                 nextrightpoint.pos[0] = nextpoint.pos[0]-normal.pos[0];
-                nextleftpoint.pos[1] = 0;
+                nextrightpoint.pos[1] = nextpoint.pos[1];
                 nextrightpoint.pos[2] = nextpoint.pos[2]-normal.pos[2];
 
 
@@ -670,7 +640,7 @@ class road{
             //std::cout << "\n";
         }
 
-        bool isontrack(double givenpos[3]){// a rough aproximate answer to is a point on the road ignores height
+        bool isontrack(double givenpos[3]){
 
             getoutsidepoints();
 
@@ -713,6 +683,103 @@ class road{
             return false;
 
 
+        }
+
+        int getsegnumfrompos(double givenpos[3]){
+
+            getoutsidepoints();
+
+            point givenpospoint;
+            givenpospoint.pos[0] = givenpos[0];
+            givenpospoint.pos[1] = givenpos[1];
+            givenpospoint.pos[2] = givenpos[2];
+
+
+            int segnum = 0;
+            for (double dist = 0;dist < length+spacing;dist += spacing){
+
+                segnum = segnum + 1;
+
+                point newleftpoint = leftpoints[segnum];
+                
+                point newrightpoint = rightpoints[segnum];
+
+                point lastleftpoint = leftpoints[segnum-1];
+
+                point lastrightpoint = rightpoints[segnum-1];
+
+                std::vector<point> newpolygon;
+                newpolygon.push_back(lastleftpoint);
+                newpolygon.push_back(lastrightpoint);
+                newpolygon.push_back(newrightpoint);
+                newpolygon.push_back(newleftpoint);
+                if (isinpoly(newpolygon,givenpospoint)){
+                    return segnum;
+                }
+                //std::cout << segnum << "\n";
+
+                //std::cout << newleftpoint.pos[0] << " " << newleftpoint.pos[2] << "\n";
+                //std::cout << newrightpoint.pos[0] << " " << newrightpoint.pos[2] << "\n";
+                //std::cout << lastleftpoint.pos[0] << " " << lastleftpoint.pos[2] << "\n";
+                //std::cout << lastrightpoint.pos[0] << " " << lastrightpoint.pos[2] << "\n";
+
+            }
+
+            return -1;
+
+
+        }
+
+
+        double trackheight(double givenpos[3]){
+            int segnum = getsegnumfrompos(givenpos);
+            if (segnum == -1){ // the point is not over a section of this track
+                return -1;
+            }
+
+            point newleftpoint = leftpoints[segnum];
+                
+            point newrightpoint = rightpoints[segnum];
+
+            point lastleftpoint = leftpoints[segnum-1];
+
+            point lastrightpoint = rightpoints[segnum-1];
+
+            std::vector<point> newpolygon;
+            newpolygon.push_back(lastleftpoint);
+            newpolygon.push_back(lastrightpoint);
+            newpolygon.push_back(newrightpoint);
+            newpolygon.push_back(newleftpoint);
+
+
+            double height;
+
+            double normal[3];
+            double vect1[3];
+            double vect2[3];
+            for (int i = 0;i < 3;i++){
+                vect1[i] = (newpolygon[1].pos[i]
+                        -newpolygon[0].pos[i]); // get the diff between 0 and 1 points as vect
+                vect2[i] = (newpolygon[2].pos[i]
+                        -newpolygon[0].pos[i]); // get the diff between 0 and 2 points as vect
+            }
+            normal[0] = vect1[1]*vect2[2]-vect1[2]*vect2[1];
+            normal[1] = vect1[2]*vect2[0]-vect1[0]*vect2[2];
+            normal[2] = vect1[0]*vect2[1]-vect1[1]*vect2[0];
+
+            double normlen = sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
+
+            double a = normal[0] / normlen;
+            double b = normal[1] / normlen;
+            double c = normal[2] / normlen;
+            double d = -(a*newpolygon[0].pos[0]+b*newpolygon[0].pos[1]+c*newpolygon[0].pos[2]);
+
+            // ax+by+cz+d = 0
+            //by = -(ax+cz+d)
+            //y = -(ax+cz+d)/b
+            height = -(a*givenpos[0]+c*givenpos[2]+d)/b;
+
+            return height;
         }
 
 
@@ -859,7 +926,9 @@ class object{ // a thing which will be show contains points and connections and 
     public:
         std::vector<point> points;
         std::vector<face> faces; // done through reference (not actual reference) to points
-        double center[3];
+        double pointing[3] = {0,0,1}; // a normalised vector directing starting forwards of {0,0,1}
+        double objectup[3] = {0,1,0}; // like pointing but points up at start for roll
+        double center[3] = {0,0,0};
 
 
         
@@ -891,14 +960,30 @@ class object{ // a thing which will be show contains points and connections and 
             revrotquaternion[2] = -rotquaternion[2];
             revrotquaternion[3] = -rotquaternion[3];
 
-            for (int i = 0;i < points.size();i++){
+            for (int i = 0;i < points.size()+2;i++){// the +2 is for the forwards vector and upwards vector
                 double* locq;
 
                 double startquat[4];
-                startquat[0] = 0;
-                startquat[1] = (double) points[i].pos[0];
-                startquat[2] = (double) points[i].pos[1];
-                startquat[3] = (double) points[i].pos[2];
+                if (i == points.size()){
+                    startquat[0] = 0;
+                    startquat[1] = (double) pointing[0];
+                    startquat[2] = (double) pointing[1];
+                    startquat[3] = (double) pointing[2];
+                }
+                else if (i == points.size() + 1){
+                    startquat[0] = 0;
+                    startquat[1] = (double) objectup[0];
+                    startquat[2] = (double) objectup[1];
+                    startquat[3] = (double) objectup[2];
+                }
+                else{
+                    startquat[0] = 0;
+                    startquat[1] = (double) points[i].pos[0];
+                    startquat[2] = (double) points[i].pos[1];
+                    startquat[3] = (double) points[i].pos[2];
+                }
+                
+                
 
 
                 locq = multiquaternion(rotquaternion,startquat);
@@ -913,9 +998,24 @@ class object{ // a thing which will be show contains points and connections and 
                 double endy = *(locq+2);
                 double endz = *(locq+3);
                 //std::cout << endx << " " << endy << " " << endz << "\n";
-                points[i].pos[0] = endx;
-                points[i].pos[1] = endy;
-                points[i].pos[2] = endz;
+
+                if (i == points.size()){
+                    pointing[0] = endx;
+                    pointing[1] = endy;
+                    pointing[2] = endz;
+                }
+                else if (i == points.size() + 1){
+                    objectup[0] = endx;
+                    objectup[1] = endy;
+                    objectup[2] = endz;
+                }
+                else{
+                    points[i].pos[0] = endx;
+                    points[i].pos[1] = endy;
+                    points[i].pos[2] = endz;
+                }
+
+                
                 //std::cout << (endx*endx+endy*endy+endz*endz) << "\n";
             }
 
@@ -934,9 +1034,11 @@ class player{
         double needtomove[3];
         double playeranglex;
         double playerangley;
+        double playerroll;
 
-        double carspeed;
         double momentum[3];
+        double minspeed;
+        double maxspeed;
 
         double pointing[3];
 
@@ -947,18 +1049,26 @@ class player{
             selfpos[0] = 0;
             selfpos[1] = 0;
             selfpos[2] = 0;
+
             needtomove[0] = 0;
             needtomove[1] = 0;
             needtomove[2] = 0;
+
             pointing[0] = 0;
             pointing[1] = 0;
             pointing[2] = 1;
+
             playeranglex = 0;
             playerangley = 0;
-            carspeed = 0;
+            playerroll = 0;
+
             momentum[0] = 0;
             momentum[1] = 0;
             momentum[2] = 0;
+
+            minspeed = -camspeed/2;
+            maxspeed = camspeed;
+
         }
 
         void makecar(){ // get the points needed to make the car and face construction
@@ -1021,15 +1131,14 @@ class player{
 
             double changevect[3];
             for (int dimension = 0; dimension < 3;dimension++){
-                changevect[dimension] = selfpos[dimension] - maincamera.selfpos[dimension] - pointing[dimension]*256;
+                changevect[dimension] = selfpos[dimension] - maincamera.selfpos[dimension] - maincamera.pointing[dimension]*256;
                 
                 momentum[dimension] = needtomove[dimension];
-                std::cout << needtomove[dimension] << " new momentum\n";
+                
                 needtomove[dimension] = 0;
                 
                 playercar.center[dimension] = selfpos[dimension];
                 //std::cout << "car pos" << playercar.center[dimension] << "\n";
-
 
                 
             }
@@ -1045,16 +1154,15 @@ class player{
             maincamera.rotate(x , y);
 
             double changex = maincamera.xangle - playeranglex;
-            double changey = maincamera.yangle - playerangley;
-
-            if (changex != 0){
+            
+            /*if (changex != 0){
                 double rotvect[3];
                 rotvect[0] = 0;
                 rotvect[1] = 1;
                 rotvect[2] = 0;
                 playercar.selfrotate(rotvect,-changex);
             }
-            /*if (changey != 0){
+            *//*if (changey != 0){
                 double rotvect[3];
                 rotvect[0] = cos(playeranglex);
                 rotvect[1] = 0;
@@ -1064,14 +1172,16 @@ class player{
             }*/
 
             playeranglex = maincamera.xangle;
-            playerangley = maincamera.yangle;
+            
 
+            pointing[0] = maincamera.pointing[0];
+            pointing[2] = maincamera.pointing[2];
 
-            for (int i = 0;i < 3;i++){
-                pointing[i] = maincamera.pointing[i];
-            }
-            pointing[0] = pointing[0];
-            pointing[2] = pointing[2];
+            double pointinglen = sqrt(pointing[0]*pointing[0]+pointing[2]*pointing[2]);
+
+            pointing[0] = pointing[0]/pointinglen;
+            pointing[2] = pointing[2]/pointinglen;
+            
 
 
             //std::cout << "pointing" << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
@@ -1089,26 +1199,28 @@ class player{
                 }
             }
 
-
             acceleration = acceleration * roadtypemodifier;
 
-            carspeed = carspeed + acceleration;
+            momentum[0] = momentum[0] - acceleration*sin(maincamera.xangle);//+x*cos(maincamera.xangle); // x is drift
+            momentum[2] = momentum[2] + acceleration*cos(maincamera.xangle);//+x*sin(maincamera.xangle);
+            //std::cout << momentum[0] << " " << momentum[1] << " " << momentum[2] << " momentum\n";
 
+        }
 
-            momentum[0] = momentum[0] -acceleration*sin(maincamera.xangle);//+x*cos(maincamera.xangle); // x is drift
-            momentum[2] = momentum[2] +acceleration*cos(maincamera.xangle);//+x*sin(maincamera.xangle);
-            std::cout << momentum[0] << " " << momentum[1] << " " << momentum[2] << " momentum\n";
+        void sideaccelerate(double sideacceleration){
 
-            double speed = sqrt(momentum[0]*momentum[0]/*+momentum[1]*momentum[1]*/+momentum[2]*momentum[2]);
-            if (speed > camspeed*roadtypemodifier){
-                momentum[0] = momentum[0] *camspeed/speed;
-                momentum[1] = momentum[1] *camspeed/speed;
-                momentum[2] = momentum[2] *camspeed/speed;
+            double roadtypemodifier = 1;
+            for (int i = 0 ; i < maintrack.size(); i++){
+                if (maintrack[i].isontrack(selfpos)){
+                    roadtypemodifier = 2;
+                }
             }
 
-            if (carspeed > camspeed*roadtypemodifier){
-                carspeed = camspeed*roadtypemodifier;
-            }
+            sideacceleration = sideacceleration * roadtypemodifier;
+
+            momentum[0] = momentum[0] + sideacceleration*cos(maincamera.xangle);
+            momentum[2] = momentum[2] + sideacceleration*sin(maincamera.xangle);
+            //std::cout << momentum[0] << " " << momentum[1] << " " << momentum[2] << " momentum\n";
 
         }
 
@@ -1121,33 +1233,139 @@ class player{
             }
 
             double speed = sqrt(momentum[0]*momentum[0]/*+momentum[1]*momentum[1]*/+momentum[2]*momentum[2]);
-            if (speed == 0){
-
-            }
-            else if (speed > 0){
+            std::cout << speed << " speed\n";
+            if (speed == 0){}
+            else{ // speed is always pos or 0
                 double newspeed = speed - (speed*speed+1)*frictionco;
+                if (newspeed > maxspeed*1000*frictionco){
+                    newspeed = maxspeed*1000*frictionco;
+                }
 
                 momentum[0] = momentum[0]*newspeed/speed;
                 momentum[1] = momentum[1]*newspeed/speed;
                 momentum[2] = momentum[2]*newspeed/speed;
             }
-            else{
-                double newspeed = speed + (speed*speed+1)*frictionco;
+        }
 
-                momentum[0] = momentum[0]*newspeed/speed;
-                momentum[1] = momentum[1]*newspeed/speed;
-                momentum[2] = momentum[2]*newspeed/speed;
+
+        void correctcarobject(){
+
+            double flatpointlength = sqrt(playercar.pointing[0]*playercar.pointing[0]+
+                                        playercar.pointing[2]*playercar.pointing[2]);// this is the length of the flatened to xz plane pointing so can scale up
+            double currentpointrot[3] = {-playercar.pointing[2]/flatpointlength,0/*playercar.pointing[1] for reasons of flatness*/
+                                        ,playercar.pointing[0]/flatpointlength}; // this is the playercar.pointing rotated pi/2
+            double rotpointdotwanted = 0;
+            for (int i = 0; i < 3; i++){// is this rotated pointing forward or backward equivilent to is currentpointing left or right
+                rotpointdotwanted = rotpointdotwanted + currentpointrot[i]*pointing[i];
             }
+            double currentpointdotwanted = 0;// is this so i can see if it is totaly backwards for my checks
+            currentpointdotwanted = currentpointdotwanted + playercar.pointing[0]*pointing[0];
+            currentpointdotwanted = currentpointdotwanted + playercar.pointing[2]*pointing[2];
             
 
-            std::cout << carspeed << " carspeed\n";
-            if (carspeed > 0){
-                carspeed = carspeed - (carspeed*carspeed+1)*frictionco;
+            /*double currentx = atan2(playercar.pointing[0],playercar.pointing[2]);
+            double currenty = atan2(playercar.pointing[1],playercar.pointing[2]);
+
+            double newx = atan2(pointing[0],pointing[2]);
+            double newy = atan2(pointing[1],pointing[2]);*/
+
+
+            double changex=0;
+            if (abs(rotpointdotwanted) < 0.1 && currentpointdotwanted > 0){/*if very low then it is close enough not bother and if not oposite direction*/}
+            else if (rotpointdotwanted > 0) {
+                changex = 0.025;
+            } else if (rotpointdotwanted < 0) {
+                changex = -0.025;
             }
-            else{
-                carspeed = carspeed + (carspeed*carspeed+1)*frictionco;
+
+
+
+
+            //std::cout << currentx << " " << currenty << " current angles\n";
+            //std::cout << newx << " " << newy << " new angles\n";
+            //std::cout << changex << " " << changey << " " << changez << " change angles\n";
+
+            std::cout << pointing[0] << " " << pointing[1] << " " << pointing[2] << " wanted pointing\n";
+            std::cout << playercar.pointing[0] << " " << playercar.pointing[1] << " " << playercar.pointing[2] << " start pointing\n";
+
+            double startdot = 0;
+            for (int i = 0; i < 3;i++){
+                startdot = startdot + pointing[i]*playercar.pointing[i];
             }
-            std::cout << carspeed << " carspeed\n";
+
+            if (changex != 0){// yaw
+                double rotvect[3];
+                rotvect[0] = 0;
+                rotvect[1] = -1;
+                rotvect[2] = 0;
+                //for (int ii=0; ii<128; ii++) {
+                    playercar.selfrotate(rotvect,changex);
+                //}
+
+                std::cout << changex << " yaw\n";
+            }
+
+            double changey = 0;
+            if (abs(playercar.pointing[1] - pointing[1]) < 0.05){}
+            else if (playercar.pointing[1] < pointing[1]){
+                changey = 0.025;
+            }
+            else if (playercar.pointing[1] > pointing[1]){
+                changey = -0.025;
+            }
+
+            if (changey != 0){// pitch
+                double rotvect[3];
+                double xzpointlen = sqrt(playercar.pointing[0]*playercar.pointing[0]+playercar.pointing[2]*playercar.pointing[2]);
+                // useing angles is inacurate as angle is perfect but the actual direction is a bit off
+                rotvect[0] = -playercar.pointing[2]/xzpointlen;
+                rotvect[1] = 0;
+                rotvect[2] = playercar.pointing[0]/xzpointlen;
+
+                
+                playercar.selfrotate(rotvect,changey);
+                
+                std::cout << -changey << " pitch\n";
+
+            }
+
+
+            // to get changez rot upvect by pi/2 around the forward vect then get dot of it and its proper vect
+            // for non direct up vects end you need to work out the vect from up rot by angle around forwards
+            double rotvect[3] = {};
+            double changez = 0;
+
+            if (changez != 0){// roll
+                double rotvect[3];
+                double xzpointlen = sqrt(playercar.pointing[0]*playercar.pointing[0]+playercar.pointing[2]*playercar.pointing[2]);
+                // useing angles is inacurate as angle is perfect but the actual direction is a bit off
+                rotvect[0] = playercar.pointing[0]/xzpointlen;
+                rotvect[1] = 0;
+                rotvect[2] = playercar.pointing[2]/xzpointlen;
+                playercar.selfrotate(rotvect,changez);
+
+                std::cout << changez << " roll\n";
+            }
+            
+            
+            std::cout << playercar.pointing[0] << " " << playercar.pointing[1] << " " << playercar.pointing[2] << " end pointing\n";
+
+            if (fabs(playercar.pointing[0] - pointing[0]) > 0.0005) {
+                std::cout << "oops\n";
+            }
+
+            double enddot = 0;
+            for (int i = 0; i < 3;i++){
+                enddot = enddot + pointing[i]*playercar.pointing[i];
+            }
+
+            std::cout << startdot << " " << enddot << " dots\n";
+            std::cout << enddot-startdot << " dots diff\n";
+
+            double newx = atan2(playercar.pointing[0],playercar.pointing[2]);
+            double newy = atan2(playercar.pointing[1],playercar.pointing[2]);
+
+            std::cout << newx << " " << newy << " final angles\n";
 
         }
 
@@ -1155,17 +1373,60 @@ class player{
 
         void update(){
 
+            double slope = 0;
+            double sideslope = 0;
+
+            for (int i = 0; i < maintrack.size(); i++){
+                if (maintrack[i].isontrack(selfpos)){
+                    double height = maintrack[i].trackheight(selfpos);
+                    selfpos[1] = height;
+
+                    double differentpos[3] = {selfpos[0]+pointing[0],selfpos[1],selfpos[2]+pointing[2]};
+                    double differentheight = maintrack[i].trackheight(differentpos);
+
+                    slope = (differentheight-height)/sqrt(pointing[0]*pointing[0]+pointing[2]*pointing[2]);
+                    if (differentheight == -1){
+                        differentheight = height;
+                        slope = 0;
+                    }
+                    
+
+                    pointing[1] = slope;
+                    double newflatlength = sqrt(1-pointing[1]*pointing[1]);
+                    pointing[0] = pointing[0]*newflatlength;
+                    pointing[2] = pointing[2]*newflatlength;
+
+                    double parallelpos[3] = {selfpos[0]+pointing[2],selfpos[1],selfpos[2]-pointing[0]};
+                    double parallelheight = maintrack[i].trackheight(parallelpos);
+
+                    sideslope = (parallelheight-height)/sqrt(pointing[0]*pointing[0]+pointing[2]*pointing[2]);
+                    if (parallelheight == -1){
+                        parallelheight = height;
+                        sideslope = 0;
+                    }
+                    std::cout << "track height " << height << " " << slope << " " << sideslope << "\n";
+
+
+                    double newyangle = atan2((differentheight-height),sqrt(pointing[0]*pointing[0]+pointing[2]*pointing[2]));
+                    std::cout << newyangle << " new y angle\n";
+                }
+            }
+
+            accelerate(slope);
+            sideaccelerate(sideslope);
 
 
             speedcheck();
 
-            premove(momentum[0],momentum[1],momentum[2]);
+            premove(momentum[0],momentum[1],momentum[2]); // keep momentum
 
 
             //relmove(0,0,carspeed);
             move();
 
             rotate(0,0);
+
+            correctcarobject();
 
             
             
@@ -1270,19 +1531,25 @@ int main(int argc, char **argv)
 
         point startpoint;
         point midpoint;
+        point midpoint2;
         point endpoint;
+
+        //curve 1
         
         roadsegment.length = 2048;
         roadsegment.spacing = 64;
         roadsegment.width = 256;
         
-        startpoint.pos[0] = 2048;
+        startpoint.pos[0] = 3072;
+        startpoint.pos[1] = 0;
         startpoint.pos[2] = 0;
         
-        midpoint.pos[0] = 2048;
+        midpoint.pos[0] = 3072;
+        midpoint.pos[1] = 0;
         midpoint.pos[2] = 2048;
         
-        endpoint.pos[0] = 0;
+        endpoint.pos[0] = 1024;
+        endpoint.pos[1] = 0;
         endpoint.pos[2] = 2048;
 
         roadsegment.points.clear();
@@ -1291,18 +1558,54 @@ int main(int argc, char **argv)
         roadsegment.points.push_back(endpoint);
 
         maintrack.push_back(roadsegment);
+
+        //stright 1
+
+        roadsegment.length = 2048;
+        roadsegment.spacing = 64;
+        roadsegment.width = 256;
+        
+        startpoint.pos[0] = 1024;
+        startpoint.pos[1] = 0;
+        startpoint.pos[2] = 2048;
+        
+        midpoint.pos[0] = 0;
+        midpoint.pos[1] = 0;
+        midpoint.pos[2] = 2048;
+
+        midpoint2.pos[0] = 0;
+        midpoint2.pos[1] = -256;
+        midpoint2.pos[2] = 2048;
+        
+        endpoint.pos[0] = -1024;
+        endpoint.pos[1] = -256;
+        endpoint.pos[2] = 2048;
+
+        roadsegment.points.clear();
+        roadsegment.points.push_back(startpoint);
+        roadsegment.points.push_back(midpoint);
+        roadsegment.points.push_back(midpoint2);
+        roadsegment.points.push_back(endpoint);
+
+        maintrack.push_back(roadsegment);
+
+
+        // curve 2
         
         roadsegment.length = 2048;
         roadsegment.spacing = 64;
         roadsegment.width = 256;
         
-        startpoint.pos[0] = 0;
+        startpoint.pos[0] = -1024;
+        startpoint.pos[1] = -256;
         startpoint.pos[2] = 2048;
         
-        midpoint.pos[0] = -2048;
+        midpoint.pos[0] = -3072;
+        midpoint.pos[1] = -256;
         midpoint.pos[2] = 2048;
         
-        endpoint.pos[0] = -2048;
+        endpoint.pos[0] = -3072;
+        endpoint.pos[1] = -256;
         endpoint.pos[2] = 0;
 
         roadsegment.points.clear();
@@ -1311,37 +1614,81 @@ int main(int argc, char **argv)
         roadsegment.points.push_back(endpoint);
 
         maintrack.push_back(roadsegment);
+
+
+        // curve 3
         
         roadsegment.length = 2048;
         roadsegment.spacing = 64;
         roadsegment.width = 256;
         
-        startpoint.pos[0] = -2048;
+        startpoint.pos[0] = -3072;
+        startpoint.pos[1] = -256;
         startpoint.pos[2] = 0;
         
-        midpoint.pos[0] = -2048;
+        midpoint.pos[0] = -3072;
+        midpoint.pos[1] = -256;
         midpoint.pos[2] = -2048;
         
-        endpoint.pos[0] = 0;
+        endpoint.pos[0] = -1024;
+        endpoint.pos[1] = -256;
         endpoint.pos[2] = -2048;
+
         roadsegment.points.clear();
         roadsegment.points.push_back(startpoint);
         roadsegment.points.push_back(midpoint);
         roadsegment.points.push_back(endpoint);
 
         maintrack.push_back(roadsegment);
+
+
+        //stright 2
+
+        roadsegment.length = 2048;
+        roadsegment.spacing = 64;
+        roadsegment.width = 256;
+        
+        startpoint.pos[0] = -1024;
+        startpoint.pos[1] = -256;
+        startpoint.pos[2] = -2048;
+        
+        midpoint.pos[0] = 0;
+        midpoint.pos[1] = -256;
+        midpoint.pos[2] = -2048;
+
+        midpoint2.pos[0] = 0;
+        midpoint2.pos[1] = 0;
+        midpoint2.pos[2] = -2048;
+        
+        endpoint.pos[0] = 1024;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = -2048;
+
+        roadsegment.points.clear();
+        roadsegment.points.push_back(startpoint);
+        roadsegment.points.push_back(midpoint);
+        roadsegment.points.push_back(midpoint2);
+        roadsegment.points.push_back(endpoint);
+
+        maintrack.push_back(roadsegment);
+
+
+        // curve 4
         
         roadsegment.length = 2048;
         roadsegment.spacing = 64;
         roadsegment.width = 256;
         
-        startpoint.pos[0] = 0;
+        startpoint.pos[0] = 1024;
+        startpoint.pos[1] = 0;
         startpoint.pos[2] = -2048;
         
-        midpoint.pos[0] = 2048;
+        midpoint.pos[0] = 3072;
+        midpoint.pos[1] = 0;
         midpoint.pos[2] = -2048;
         
-        endpoint.pos[0] = 2048;
+        endpoint.pos[0] = 3072;
+        endpoint.pos[1] = 0;
         endpoint.pos[2] = 0;
 
         roadsegment.points.clear();
