@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <cmath>
 #include <vector>
+#include <sys/time.h>
 #define _USE_MATH_DEFINES
 
 const int dispwidth = 1080;
@@ -456,11 +457,30 @@ class road{
     public:
 
         std::vector<point> points; // points will start by being linear interpolation but will swap for beizer curves
-        double length;
-        double spacing;
-        double width;
+        double length = 1;
+        double spacing = 1;
+        double width = 1;
         std::vector<point> leftpoints;
         std::vector<point> rightpoints;
+
+
+        int checkpointnumber = -1; // this is a number that identifies this roadsegment
+
+
+        road(double newlength , double newspacing , double newwidth , std::vector<point> newpoints , int id){
+            length = newlength;
+            spacing = newspacing;
+            width = newwidth;
+            points.clear();
+            for (int i = 0; i < newpoints.size(); i++){
+                points.push_back(newpoints[i]);
+            }
+            checkpointnumber = id;
+
+            getoutsidepoints();
+
+        }
+
 
         point getposofroad(double ratio){ // this will give position of the road at a given fraction through it 0 giving start and 1 end
             std::vector<point> laststagepoints;
@@ -619,7 +639,7 @@ class road{
                 }
                 
 
-                for (int i = 0;i < newpolygon.size();i++){
+                /*for (int i = 0;i < newpolygon.size();i++){// this draws an outline of the seg but is not cliped so can draw forever
                     int otherpoint = (i+1)%newpolygon.size();
                     //std::cout << newpolygon[i].pos[0] << " " << newpolygon[i].pos[1] << "\n";
 
@@ -627,17 +647,49 @@ class road{
                                         , newpolygon[otherpoint].pos[0]+dispwidth/2 , newpolygon[otherpoint].pos[1]+dispheight/2);
 
                     
-                }
+                }*/
                 //std::cout << "\n";
 
 
                 lastpoint.pos[0] = nextpoint.pos[0];
-                lastpoint.pos[1] = 0;
+                lastpoint.pos[1] = nextpoint.pos[1];
                 lastpoint.pos[2] = nextpoint.pos[2];
                 
 
             }
             //std::cout << "\n";
+        }
+
+        int isincheckpoint(double givenpos[3]){// similar to isontrack but only for first segment returns identification if true else -1
+
+            getoutsidepoints();
+
+            point givenpospoint;
+            givenpospoint.pos[0] = givenpos[0];
+            givenpospoint.pos[1] = givenpos[1];
+            givenpospoint.pos[2] = givenpos[2];
+
+
+            point newleftpoint = leftpoints[1];
+                
+            point newrightpoint = rightpoints[1];
+
+            point lastleftpoint = leftpoints[0];
+
+            point lastrightpoint = rightpoints[0];
+
+
+            std::vector<point> newpolygon;
+            newpolygon.push_back(lastleftpoint);
+            newpolygon.push_back(lastrightpoint);
+            newpolygon.push_back(newrightpoint);
+            newpolygon.push_back(newleftpoint);
+            if (isinpoly(newpolygon,givenpospoint)){
+                return checkpointnumber;
+            }
+
+            return -1;
+
         }
 
         bool isontrack(double givenpos[3]){
@@ -1044,6 +1096,11 @@ class player{
         double carup[3];
 
         object playercar;
+
+        std::vector<int> checkpointspassed;
+        int totalnumcheckpoints;
+
+        long long timeatcheckpoint;
         
 
         player(){
@@ -1074,6 +1131,13 @@ class player{
             minspeed = -camspeed/2;
             maxspeed = camspeed;
 
+
+            totalnumcheckpoints = 0;
+
+            timeval currenttime;
+            gettimeofday(&currenttime,NULL);
+            timeatcheckpoint = currenttime.tv_sec*1000000 + currenttime.tv_usec;
+            
         }
 
         void makecar(){ // get the points needed to make the car and face construction
@@ -1395,8 +1459,7 @@ class player{
         }
 
 
-
-        void update(){
+        void slopeaccelerate(){
 
             double slope = 0;
             double sideslope = 0;
@@ -1417,9 +1480,10 @@ class player{
                     
 
                     pointing[1] = slope;
-                    double newflatlength = sqrt(1-pointing[1]*pointing[1]);
-                    pointing[0] = pointing[0]*newflatlength;
-                    pointing[2] = pointing[2]*newflatlength;
+                    double newlength = sqrt(pointing[0]*pointing[0]+pointing[1]*pointing[1]+pointing[2]*pointing[2]);
+                    pointing[0] = pointing[0]/newlength;
+                    pointing[1] = pointing[1]/newlength;
+                    pointing[2] = pointing[2]/newlength;
 
                     double parallelpos[3] = {selfpos[0]+pointing[2],selfpos[1],selfpos[2]-pointing[0]};
                     double parallelheight = maintrack[i].trackheight(parallelpos);
@@ -1431,29 +1495,73 @@ class player{
                     }
 
                     parallelpos[1] = sideslope;
-                    double parallelflatlength = sqrt(1-parallelpos[1]*parallelpos[1]);
-                    parallelpos[0] = pointing[2]*parallelflatlength/newflatlength;
-                    parallelpos[2] = -pointing[0]*parallelflatlength/newflatlength;
+                    parallelpos[0] = pointing[2]*newlength;
+                    parallelpos[2] = -pointing[0]*newlength;
+                    double parallellength = sqrt(parallelpos[0]*parallelpos[0]+parallelpos[1]*parallelpos[1]+parallelpos[2]*parallelpos[2]);
+                    parallelpos[0] = pointing[2]/parallellength;
+                    parallelpos[1] = parallelpos[1]/parallellength;
+                    parallelpos[2] = -pointing[0]/parallellength;
 
                     // the cross product of parallelpos and pointing will be the new up
 
+                    
                     for (int i = 0; i < 3; i++){
                         carup[i] = (parallelpos[(i+1)%3]*pointing[(i+2)%3])-(parallelpos[(i+2)%3]*pointing[(i+1)%3]);
                     }
-
-
-                    std::cout << "roll carup" << carup[0] << " " << carup[1] << " " << carup[2] << "\n";
-
-                    std::cout << "track height " << height << " " << slope << " " << sideslope << "\n";
-
-
-                    double newyangle = atan2((differentheight-height),sqrt(pointing[0]*pointing[0]+pointing[2]*pointing[2]));
-                    std::cout << newyangle << " new y angle\n";
                 }
             }
 
             accelerate(slope);
             sideaccelerate(sideslope);
+
+        }
+
+
+
+        void update(){
+
+            slopeaccelerate();
+
+
+            for (int i = 0 ; i < maintrack.size(); i++){
+                int checkpointid = maintrack[i].isincheckpoint(selfpos);
+                if (checkpointid != -1){
+                    bool haspassed = false;
+                    for (int j = 0; j < checkpointspassed.size(); j++){
+                        if (checkpointspassed[j] == checkpointid){
+                            haspassed = true;
+                        }
+                    }
+
+                    if (!haspassed){
+                        checkpointspassed.push_back(checkpointid);
+                        std::cout << "checkpoint " << checkpointid << "\n";
+                    }
+
+
+                    if (checkpointid == 0 && checkpointspassed.size() == totalnumcheckpoints){
+                        checkpointspassed.clear();
+
+                        timeval currenttime;
+
+                        gettimeofday(&currenttime,NULL);
+
+                        std::cout << "checkpoint last time " << timeatcheckpoint << "\n";
+
+                        long long newtime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
+
+                        std::cout << "checkpoint difference " << newtime-timeatcheckpoint << "\n";
+
+                        timeatcheckpoint = newtime;
+
+                        std::cout << "checkpoint time " << timeatcheckpoint << "\n";
+
+                    }
+
+                    
+
+                }
+            }
 
 
             speedcheck();
@@ -1488,12 +1596,19 @@ void renderground(){
 
     int horizon = dispdist*tan(maincamera.yangle)+dispheight/2; // height not matter as far enough away not matter
     bool iscarontrack = false;
+    bool carincheckpoint = false;
     for (int i = 0; i < maintrack.size(); i++){
         if (maintrack[i].isontrack(mainplayer.selfpos)){
             iscarontrack = true;
         }
+        if (maintrack[i].isincheckpoint(mainplayer.selfpos) != -1){
+            carincheckpoint = true;
+        }
     }
-    if (iscarontrack){
+    if (carincheckpoint){
+        SDL_SetRenderDrawColor( renderer, 0x00, 0x00, 0xff, 0xFF );
+    }
+    else if (iscarontrack){
         SDL_SetRenderDrawColor( renderer, 0x00, 0xff, 0x00, 0xFF );
     }
     else{
@@ -1566,19 +1681,21 @@ int main(int argc, char **argv)
         SDL_UpdateWindowSurface( window );
 
 
-        road roadsegment;
+        
 
 
         point startpoint;
         point midpoint;
         point midpoint2;
         point endpoint;
+        std::vector<point> roadpoints;
 
         //curve 1
         
-        roadsegment.length = 2048;
-        roadsegment.spacing = 64;
-        roadsegment.width = 256;
+        double roadlength = 2048;
+        double roadspacing = 64;
+        double roadwidth = 256;
+        double roadid = 0;
         
         startpoint.pos[0] = 3072;
         startpoint.pos[1] = 0;
@@ -1592,18 +1709,22 @@ int main(int argc, char **argv)
         endpoint.pos[1] = 0;
         endpoint.pos[2] = 2048;
 
-        roadsegment.points.clear();
-        roadsegment.points.push_back(startpoint);
-        roadsegment.points.push_back(midpoint);
-        roadsegment.points.push_back(endpoint);
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(midpoint);
+        roadpoints.push_back(endpoint);
 
-        maintrack.push_back(roadsegment);
+        
+
+        road roadsegment0(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment0);
 
         //stright 1
 
-        roadsegment.length = 2048;
-        roadsegment.spacing = 64;
-        roadsegment.width = 256;
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 1;
         
         startpoint.pos[0] = 1024;
         startpoint.pos[1] = 0;
@@ -1621,20 +1742,23 @@ int main(int argc, char **argv)
         endpoint.pos[1] = -256;
         endpoint.pos[2] = 2048;
 
-        roadsegment.points.clear();
-        roadsegment.points.push_back(startpoint);
-        roadsegment.points.push_back(midpoint);
-        roadsegment.points.push_back(midpoint2);
-        roadsegment.points.push_back(endpoint);
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(midpoint);
+        roadpoints.push_back(midpoint2);
+        roadpoints.push_back(endpoint);
 
-        maintrack.push_back(roadsegment);
+
+        road roadsegment1(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment1);
 
 
         // curve 2
         
-        roadsegment.length = 2048;
-        roadsegment.spacing = 64;
-        roadsegment.width = 256;
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 2;
         
         startpoint.pos[0] = -1024;
         startpoint.pos[1] = -256;
@@ -1648,19 +1772,21 @@ int main(int argc, char **argv)
         endpoint.pos[1] = -256;
         endpoint.pos[2] = 0;
 
-        roadsegment.points.clear();
-        roadsegment.points.push_back(startpoint);
-        roadsegment.points.push_back(midpoint);
-        roadsegment.points.push_back(endpoint);
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(midpoint);
+        roadpoints.push_back(endpoint);
 
-        maintrack.push_back(roadsegment);
+        road roadsegment2(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment2);
 
 
         // curve 3
         
-        roadsegment.length = 2048;
-        roadsegment.spacing = 64;
-        roadsegment.width = 256;
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 3;
         
         startpoint.pos[0] = -3072;
         startpoint.pos[1] = -256;
@@ -1674,19 +1800,21 @@ int main(int argc, char **argv)
         endpoint.pos[1] = -256;
         endpoint.pos[2] = -2048;
 
-        roadsegment.points.clear();
-        roadsegment.points.push_back(startpoint);
-        roadsegment.points.push_back(midpoint);
-        roadsegment.points.push_back(endpoint);
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(midpoint);
+        roadpoints.push_back(endpoint);
 
-        maintrack.push_back(roadsegment);
+        road roadsegment3(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment3);
 
 
         //stright 2
 
-        roadsegment.length = 2048;
-        roadsegment.spacing = 64;
-        roadsegment.width = 256;
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 4;
         
         startpoint.pos[0] = -1024;
         startpoint.pos[1] = -256;
@@ -1704,20 +1832,22 @@ int main(int argc, char **argv)
         endpoint.pos[1] = 0;
         endpoint.pos[2] = -2048;
 
-        roadsegment.points.clear();
-        roadsegment.points.push_back(startpoint);
-        roadsegment.points.push_back(midpoint);
-        roadsegment.points.push_back(midpoint2);
-        roadsegment.points.push_back(endpoint);
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(midpoint);
+        roadpoints.push_back(midpoint2);
+        roadpoints.push_back(endpoint);
 
-        maintrack.push_back(roadsegment);
+        road roadsegment4(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment4);
 
 
         // curve 4
         
-        roadsegment.length = 2048;
-        roadsegment.spacing = 64;
-        roadsegment.width = 256;
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 5;
         
         startpoint.pos[0] = 1024;
         startpoint.pos[1] = 0;
@@ -1731,16 +1861,19 @@ int main(int argc, char **argv)
         endpoint.pos[1] = 0;
         endpoint.pos[2] = 0;
 
-        roadsegment.points.clear();
-        roadsegment.points.push_back(startpoint);
-        roadsegment.points.push_back(midpoint);
-        roadsegment.points.push_back(endpoint);
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(midpoint);
+        roadpoints.push_back(endpoint);
 
-        maintrack.push_back(roadsegment);
+        road roadsegment5(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment5);
 
 
 
         mainplayer.makecar();
+        mainplayer.selfpos[0] = 3072;
+        mainplayer.totalnumcheckpoints = 6;
 
 
         while (!quit) { //main loop
@@ -1766,10 +1899,10 @@ int main(int argc, char **argv)
                 mainplayer.accelerate(-1);}
             if( currentKeyStates[ SDL_SCANCODE_A ] ){
                 std::cout << "A";
-                mainplayer.relmove(-camspeed,0,0);}
+                mainplayer.sideaccelerate(-1);}
             if( currentKeyStates[ SDL_SCANCODE_D ] ){
                 std::cout << "D";
-                mainplayer.relmove(camspeed,0,0);}
+                mainplayer.sideaccelerate(1);}
             if( currentKeyStates[ SDL_SCANCODE_Q ] ){
                 std::cout << "Q";
                 mainplayer.relmove(0,-camspeed,0);}
