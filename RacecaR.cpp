@@ -1041,6 +1041,7 @@ class player{
         double maxspeed;
 
         double pointing[3];
+        double carup[3];
 
         object playercar;
         
@@ -1057,6 +1058,10 @@ class player{
             pointing[0] = 0;
             pointing[1] = 0;
             pointing[2] = 1;
+
+            carup[0] = 0;
+            carup[1] = -1;
+            carup[2] = 0;
 
             playeranglex = 0;
             playerangley = 0;
@@ -1330,10 +1335,30 @@ class player{
             }
 
 
-            // to get changez rot upvect by pi/2 around the forward vect then get dot of it and its proper vect
-            // for non direct up vects end you need to work out the vect from up rot by angle around forwards
-            double rotvect[3] = {};
+            // get forward crossed with "up" to give a plane which is good for the car to have as up
+            // then dot the cars up with this cross to see if it is left or right of the plane then roll
+            
+            double upcrosspointing[3];// used as simple plane containing up and pointing
+            for (int i = 0; i < 3; i++){
+                upcrosspointing[i] = (pointing[(i+1)%3]*carup[(i+2)%3])-(pointing[(i+2)%3]*carup[(i+1)%3]);
+            }
+            double nowdotcross = 0;
+            for (int i = 0; i < 3; i++){
+                nowdotcross = nowdotcross + playercar.objectup[i]*upcrosspointing[i];
+            }
+            
+            
             double changez = 0;
+            if (abs(nowdotcross) < 0.03){/*close enough not to bother*/}
+            else if (nowdotcross > 0){
+                changez = 0.01;
+            }
+            else if (nowdotcross < 0){
+                changez = -0.01;
+            }
+
+            std::cout << "roll cross " << upcrosspointing[0] << " " << upcrosspointing[1] << " " << upcrosspointing[2] << "\n";
+            std::cout << "roll " << nowdotcross << "\n";
 
             if (changez != 0){// roll
                 double rotvect[3];
@@ -1404,6 +1429,21 @@ class player{
                         parallelheight = height;
                         sideslope = 0;
                     }
+
+                    parallelpos[1] = sideslope;
+                    double parallelflatlength = sqrt(1-parallelpos[1]*parallelpos[1]);
+                    parallelpos[0] = pointing[2]*parallelflatlength/newflatlength;
+                    parallelpos[2] = -pointing[0]*parallelflatlength/newflatlength;
+
+                    // the cross product of parallelpos and pointing will be the new up
+
+                    for (int i = 0; i < 3; i++){
+                        carup[i] = (parallelpos[(i+1)%3]*pointing[(i+2)%3])-(parallelpos[(i+2)%3]*pointing[(i+1)%3]);
+                    }
+
+
+                    std::cout << "roll carup" << carup[0] << " " << carup[1] << " " << carup[2] << "\n";
+
                     std::cout << "track height " << height << " " << slope << " " << sideslope << "\n";
 
 
