@@ -559,7 +559,7 @@ class road{
 
         void renderroad(){
 
-            getoutsidepoints();
+            //getoutsidepoints();
 
 
 
@@ -662,7 +662,7 @@ class road{
 
         int isincheckpoint(double givenpos[3]){// similar to isontrack but only for first segment returns identification if true else -1
 
-            getoutsidepoints();
+            //getoutsidepoints();
 
             point givenpospoint;
             givenpospoint.pos[0] = givenpos[0];
@@ -694,7 +694,7 @@ class road{
 
         bool isontrack(double givenpos[3]){
 
-            getoutsidepoints();
+            //getoutsidepoints();
 
             point givenpospoint;
             givenpospoint.pos[0] = givenpos[0];
@@ -739,7 +739,7 @@ class road{
 
         int getsegnumfrompos(double givenpos[3]){
 
-            getoutsidepoints();
+            //getoutsidepoints();
 
             point givenpospoint;
             givenpospoint.pos[0] = givenpos[0];
@@ -833,8 +833,6 @@ class road{
 
             return height;
         }
-
-
 
 };
 
@@ -1089,7 +1087,7 @@ class player{
         double playerroll;
 
         double momentum[3];
-        double minspeed;
+        double revspeed;
         double maxspeed;
 
         double pointing[3];
@@ -1101,6 +1099,7 @@ class player{
         int totalnumcheckpoints;
 
         long long timeatcheckpoint;
+        std::vector<long long> laptimes;
         
 
         player(){
@@ -1128,7 +1127,7 @@ class player{
             momentum[1] = 0;
             momentum[2] = 0;
 
-            minspeed = -camspeed/2;
+            revspeed = -camspeed/2;
             maxspeed = camspeed;
 
 
@@ -1224,21 +1223,6 @@ class player{
 
             double changex = maincamera.xangle - playeranglex;
             
-            /*if (changex != 0){
-                double rotvect[3];
-                rotvect[0] = 0;
-                rotvect[1] = 1;
-                rotvect[2] = 0;
-                playercar.selfrotate(rotvect,-changex);
-            }
-            *//*if (changey != 0){
-                double rotvect[3];
-                rotvect[0] = cos(playeranglex);
-                rotvect[1] = 0;
-                rotvect[2] = sin(playeranglex);
-                playercar.selfrotate(rotvect,changey);
-
-            }*/
 
             playeranglex = maincamera.xangle;
             
@@ -1301,13 +1285,31 @@ class player{
                 }
             }
 
+            double veldotforward = 0;
+            for (int i = 0; i < 3; i++){
+                veldotforward = veldotforward + pointing[i]*momentum[i];
+            }
+
             double speed = sqrt(momentum[0]*momentum[0]/*+momentum[1]*momentum[1]*/+momentum[2]*momentum[2]);
+            if (veldotforward < 0){
+                speed = -speed;
+            }
             std::cout << speed << " speed\n";
             if (speed == 0){}
-            else{ // speed is always pos or 0
+            else if (speed > 0){ // speed is always pos or 0 ignoring the direction
                 double newspeed = speed - (speed*speed+1)*frictionco;
                 if (newspeed > maxspeed*1000*frictionco){
                     newspeed = maxspeed*1000*frictionco;
+                }
+
+                momentum[0] = momentum[0]*newspeed/speed;
+                momentum[1] = momentum[1]*newspeed/speed;
+                momentum[2] = momentum[2]*newspeed/speed;
+            }
+            else{
+                double newspeed = speed + (speed*speed+1)*frictionco;
+                if (newspeed < revspeed*1000*frictionco){
+                    newspeed = revspeed*1000*frictionco;
                 }
 
                 momentum[0] = momentum[0]*newspeed/speed;
@@ -1546,15 +1548,32 @@ class player{
 
                         gettimeofday(&currenttime,NULL);
 
-                        std::cout << "checkpoint last time " << timeatcheckpoint << "\n";
+                        //std::cout << "checkpoint last time " << timeatcheckpoint << "\n";
 
                         long long newtime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
 
                         std::cout << "checkpoint difference " << newtime-timeatcheckpoint << "\n";
 
+                        laptimes.push_back(newtime-timeatcheckpoint);
+
                         timeatcheckpoint = newtime;
 
-                        std::cout << "checkpoint time " << timeatcheckpoint << "\n";
+                        //std::cout << "checkpoint time " << timeatcheckpoint << "\n";
+
+                        long long currentmintime = laptimes[0];
+                        long long totaltime = laptimes[0];
+                        for (int j = 1; j < laptimes.size(); j++){
+                            if (laptimes[j] < currentmintime){
+                                currentmintime = laptimes[j];
+                            }
+                            totaltime = totaltime + laptimes[j];
+
+                        }
+
+                        std::cout << "checkpoint besttime " << currentmintime << "\n";
+                        std::cout << "checkpoint totaltime " << totaltime << "\n";
+
+                        
 
                     }
 
@@ -1899,10 +1918,10 @@ int main(int argc, char **argv)
                 mainplayer.accelerate(-1);}
             if( currentKeyStates[ SDL_SCANCODE_A ] ){
                 std::cout << "A";
-                mainplayer.sideaccelerate(-1);}
+                mainplayer.sideaccelerate(-0.5);}
             if( currentKeyStates[ SDL_SCANCODE_D ] ){
                 std::cout << "D";
-                mainplayer.sideaccelerate(1);}
+                mainplayer.sideaccelerate(0.5);}
             if( currentKeyStates[ SDL_SCANCODE_Q ] ){
                 std::cout << "Q";
                 mainplayer.relmove(0,-camspeed,0);}
