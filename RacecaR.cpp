@@ -1540,7 +1540,8 @@ class player{
         std::vector<int> checkpointspassed;
         int totalnumcheckpoints;
 
-        long long timeatcheckpoint;
+        long long timelapstart;
+        long long timestartrace;
         std::vector<long long> laptimes;
 
 
@@ -1580,7 +1581,8 @@ class player{
 
             timeval currenttime;
             gettimeofday(&currenttime,NULL);
-            timeatcheckpoint = currenttime.tv_sec*1000000 + currenttime.tv_usec;
+            timelapstart = currenttime.tv_sec*1000000 + currenttime.tv_usec;
+            timestartrace = timelapstart;
 
 
             currenttrackid = -1;
@@ -2004,11 +2006,11 @@ class player{
 
                         long long newtime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
 
-                        std::cout << "checkpoint difference " << newtime-timeatcheckpoint << "\n";
+                        std::cout << "checkpoint difference " << newtime-timelapstart << "\n";
 
-                        laptimes.push_back(newtime-timeatcheckpoint);
+                        laptimes.push_back(newtime-timelapstart);
 
-                        timeatcheckpoint = newtime;
+                        timelapstart = newtime;
 
                         long long currentmintime = laptimes[0];
                         long long totaltime = laptimes[0];
@@ -2028,6 +2030,17 @@ class player{
             }
         }
 
+        void startrace(){// tells the thing it has started the race
+            timeval currenttime;
+            gettimeofday(&currenttime,NULL);
+
+            long long newtime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
+            
+
+            timelapstart = newtime;
+            timestartrace = newtime;
+        }
+
 
 
         void update(){
@@ -2044,7 +2057,6 @@ class player{
             premove(momentum[0],momentum[1],momentum[2]); // keep momentum
 
 
-            //relmove(0,0,carspeed);
             move();
 
             rotate(0,0);
@@ -2764,9 +2776,10 @@ int main(int argc, char **argv)
 
         gettrack(0);
 
-        
+        started = false;
 
-        mainplayer.rotate(0,-0.3);
+        mainplayer.rotate(0.7,-0.1);// also undo previous camangle
+        mainplayer.update();
 
 
         while (!quit) { //main loop
@@ -2797,12 +2810,12 @@ int main(int argc, char **argv)
             if( currentKeyStates[ SDL_SCANCODE_D ] ){
                 std::cout << "D";
                 mainplayer.sideaccelerate(0.5);}
-            if( currentKeyStates[ SDL_SCANCODE_Q ] ){
+            /*if( currentKeyStates[ SDL_SCANCODE_Q ] ){
                 std::cout << "Q";
                 mainplayer.relmove(0,-camspeed,0);}
             if( currentKeyStates[ SDL_SCANCODE_E ] ){
                 std::cout << "E";
-                mainplayer.relmove(0,camspeed,0);}
+                mainplayer.relmove(0,camspeed,0);}*///cant fly directly up/down
 
             if( currentKeyStates[ SDL_SCANCODE_LEFT ] ){
                 std::cout << "LEFT";
@@ -2821,7 +2834,18 @@ int main(int argc, char **argv)
 
 
             // all the main physics
-            mainplayer.update();
+            if (started){
+                mainplayer.update();
+            }
+            else{
+                mainplayer.needtomove[0] = 0;
+                mainplayer.needtomove[1] = 0;
+                mainplayer.needtomove[2] = 0;
+                mainplayer.momentum[0] = 0;
+                mainplayer.momentum[1] = 0;
+                mainplayer.momentum[2] = 0;
+                mainplayer.update();
+            }
 
 
             SDL_SetRenderDrawColor( renderer, red, green, blue, 0xFF );
@@ -2838,11 +2862,76 @@ int main(int argc, char **argv)
             double length = 2048;
             double scaler = 128/length;
 
-            std::string hellostring = "hello abcdefghijklmnopqrstuvwxyz";
+            timeval currenttime;
+            gettimeofday(&currenttime,NULL);
+
+            long long nowtime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
+            long long timedif = nowtime - mainplayer.timestartrace;
+            long long timesincestartlap = nowtime - mainplayer.timelapstart;
+            if (!started){
+                if (timedif > 3000000){
+                    started = true;
+                    mainplayer.startrace();
+                }
+                else{
+                    
+                    std::string countdown = std::to_string(3-(timedif/1000000)%60);
+                    SDL_SetRenderDrawColor(renderer ,0x00 ,0x00 ,0x00 ,0xff);
+                    mainwordwriter.writechars(-32 , 0 , 64, countdown,4);
+
+                    timedif = 0;
+                    timesincestartlap = 0;
+
+                }
+                
+            }
+            std::string mins = std::to_string((timedif/1000000)/60);
+            std::string secs = std::to_string((timedif/1000000)%60);
+            std::string milsecs = std::to_string((timedif/1000)%1000);
+
+            secs = std::string((2-secs.length()),'0') +secs;
+            milsecs = std::string((3-milsecs.length()),'0') +milsecs;
+
+            std::string totalracetimestring = "time " + mins + ":" + secs + "." + milsecs;
+
             SDL_SetRenderDrawColor(renderer ,0x00 ,0x00 ,0x00 ,0xff);
-            mainwordwriter.writechars(-dispwidth/2+32,0,32,hellostring,2);
-            std::string numstring = "0123456789:.";
-            mainwordwriter.writechars(-dispwidth/2+256 , -128 , 32, numstring,2);
+            mainwordwriter.writechars(-dispwidth/2+256 , dispheight/2-48 , 32, totalracetimestring,2);
+
+
+            std::cout << totalracetimestring << " HUD \n";
+
+
+
+            if (timesincestartlap < 2000000 && mainplayer.laptimes.size() != 0){// show prev lap time for a short time just after finish lap except at start
+                long long prevlaptime = mainplayer.laptimes[mainplayer.laptimes.size()-1];// last lap time
+
+                mins = std::to_string((prevlaptime/1000000)/60);
+                secs = std::to_string((prevlaptime/1000000)%60);
+                milsecs = std::to_string((prevlaptime/1000)%1000);
+
+                secs = std::string((2-secs.length()),'0') +secs;
+                milsecs = std::string((3-milsecs.length()),'0') +milsecs;
+
+                totalracetimestring = "time " + mins + ":" + secs + "." + milsecs;
+
+                SDL_SetRenderDrawColor(renderer ,0x00 ,0x00 ,0x00 ,0xff);
+                mainwordwriter.writechars(-dispwidth/2+256 , dispheight/2-128 , 16, totalracetimestring,2);
+
+
+                std::cout << totalracetimestring << " HUD \n";
+            }
+
+
+
+
+
+            //mainplayer.startrace();// used to work out time per sec
+
+
+            
+
+            
+            
 
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth / 2, mainplayer.selfpos[2]*scaler+dispheight/2);
