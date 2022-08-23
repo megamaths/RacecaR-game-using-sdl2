@@ -123,6 +123,7 @@ void fillpoly(std::vector<point> polygon){
 bool isinpoly(std::vector<point> polygon, point querypoint){
 
     bool firstside;
+    bool onedge = true;
     for (int i = 0;i < polygon.size();i++){
         int j = (i+1) %polygon.size();
 
@@ -135,9 +136,24 @@ bool isinpoly(std::vector<point> polygon, point querypoint){
         //std::cout << querypoint.pos[0] << " " << querypoint.pos[2] << " pointq\n";
         //std::cout << side << "\n";
         if (i == 0){
-            firstside = (side > 0);
+            if (side == 0){
+                firstside = (side > 0);
+            }
+            else{
+                onedge = false;
+                firstside = (side > 0);
+            }
         }
-        if ((side > 0) != firstside){
+        else if (onedge){
+                if (side == 0){
+                    firstside = (side > 0);
+                }
+                else{
+                    onedge = false;
+                    firstside = (side > 0);
+                }
+            }
+        else if ((side > 0) != firstside){
             if (side != 0){
                 return false;
             }
@@ -1095,8 +1111,7 @@ class road{
 
         int isincheckpoint(double givenpos[3]){// similar to isontrack but only for first segment returns identification if true else -1
 
-            //getoutsidepoints();
-
+            
             point givenpospoint;
             givenpospoint.pos[0] = givenpos[0];
             givenpospoint.pos[1] = givenpos[1];
@@ -1127,18 +1142,13 @@ class road{
 
         bool isontrack(double givenpos[3]){
 
-            //getoutsidepoints();
-
             point givenpospoint;
             givenpospoint.pos[0] = givenpos[0];
             givenpospoint.pos[1] = givenpos[1];
             givenpospoint.pos[2] = givenpos[2];
 
 
-            int segnum = 0;
-            for (double dist = 0;dist < length+spacing;dist += spacing){
-
-                segnum = segnum + 1;
+            for (double segnum = 1;segnum <= length/spacing;segnum++){
 
                 point newleftpoint = leftpoints[segnum];
                 
@@ -1154,14 +1164,16 @@ class road{
                 newpolygon.push_back(newrightpoint);
                 newpolygon.push_back(newleftpoint);
                 if (isinpoly(newpolygon,givenpospoint)){
+                    std::cout << "trackid" << segnum << "\n";
+                    
                     return true;
                 }
-                //std::cout << segnum << "\n";
-
-                //std::cout << newleftpoint.pos[0] << " " << newleftpoint.pos[2] << "\n";
-                //std::cout << newrightpoint.pos[0] << " " << newrightpoint.pos[2] << "\n";
-                //std::cout << lastleftpoint.pos[0] << " " << lastleftpoint.pos[2] << "\n";
-                //std::cout << lastrightpoint.pos[0] << " " << lastrightpoint.pos[2] << "\n";
+                
+                //std::cout << "trackid" <<newleftpoint.pos[0] << " " << newleftpoint.pos[2] << "\n";
+                //std::cout << "trackid" <<newrightpoint.pos[0] << " " << newrightpoint.pos[2] << "\n";
+                //std::cout << "trackid" <<lastleftpoint.pos[0] << " " << lastleftpoint.pos[2] << "\n";
+                //std::cout << "trackid" <<lastrightpoint.pos[0] << " " << lastrightpoint.pos[2] << "\n";
+                
 
             }
 
@@ -1764,32 +1776,35 @@ class player{
                                         playercar.pointing[2]*playercar.pointing[2]);// this is the length of the flatened to xz plane pointing so can scale up
             double currentpointrot[3] = {-playercar.pointing[2]/flatpointlength,0/*playercar.pointing[1] for reasons of flatness*/
                                         ,playercar.pointing[0]/flatpointlength}; // this is the playercar.pointing rotated pi/2
-            double rotpointdotwanted = 0;
-            for (int i = 0; i < 3; i++){// is this rotated pointing forward or backward equivilent to is currentpointing left or right
-                rotpointdotwanted = rotpointdotwanted + currentpointrot[i]*pointing[i];
-            }
+            double rotpointdotwanted = 0;// is this rotated pointing forward or backward equivilent to is currentpointing left or right
+            rotpointdotwanted = rotpointdotwanted + currentpointrot[0]*pointing[0];// vert not matter
+            rotpointdotwanted = rotpointdotwanted + currentpointrot[2]*pointing[2];
+            
             double currentpointdotwanted = 0;// is this so i can see if it is totaly backwards for my checks
             currentpointdotwanted = currentpointdotwanted + playercar.pointing[0]*pointing[0];
             currentpointdotwanted = currentpointdotwanted + playercar.pointing[2]*pointing[2];
+
+            double abslensdotandcurrent = (sqrt(playercar.pointing[0]*playercar.pointing[0]+playercar.pointing[2]*playercar.pointing[2])
+                                            *sqrt(pointing[0]*pointing[0]+pointing[2]*pointing[2]));
             
+            //std::cout << "carangle start pointing " << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
+            //std::cout << "carangle start pointing " << playercar.pointing[0] << " " << playercar.pointing[1] << " " << playercar.pointing[2] << "\n";
+            //std::cout << "carangle deciders " << currentpointdotwanted << " " << abslensdotandcurrent << "\n";
+
 
             double changex=0;
-            if (abs(rotpointdotwanted) < 0.1 && currentpointdotwanted > 0){/*if very low then it is close enough not bother and if not oposite direction*/}
+            if (abs(rotpointdotwanted) < 0.01 && currentpointdotwanted > 0){/*if pointing exactly on then it can cause error as it cant do acos(1) which is 0*/}
             else if (rotpointdotwanted > 0) {
-                changex = 0.025;
+                changex = abs(acos(currentpointdotwanted/abslensdotandcurrent));
             } else if (rotpointdotwanted < 0) {
-                changex = -0.025;
+                changex = -abs(acos(currentpointdotwanted/abslensdotandcurrent));
             }
 
+            //std::cout << "carangle change " << changex << "\n";
+            //std::cout << "carangle current pointing " << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
 
 
-
-            //std::cout << currentx << " " << currenty << " current angles\n";
-            //std::cout << newx << " " << newy << " new angles\n";
-            //std::cout << changex << " " << changey << " " << changez << " change angles\n";
-
-            std::cout << pointing[0] << " " << pointing[1] << " " << pointing[2] << " wanted pointing\n";
-            std::cout << playercar.pointing[0] << " " << playercar.pointing[1] << " " << playercar.pointing[2] << " start pointing\n";
+            //std::cout << playercar.pointing[0] << " " << playercar.pointing[1] << " " << playercar.pointing[2] << " start pointing\n";
 
             double startdot = 0;
             for (int i = 0; i < 3;i++){
@@ -1954,12 +1969,15 @@ class player{
 
             for (int i = 0; i < maintrack.size(); i++){
                 if (maintrack[i].isontrack(selfpos)){
+                    std::cout << "trackid posible" << i << "\n";
                     if (abs(maintrack[i].trackheight(selfpos)-selfpos[1]) < minchange){
                         minchange = abs(maintrack[i].trackheight(selfpos)-selfpos[1]);
                         currenttrackid = maintrack[i].roadid;
                     }
                 }
             }
+
+            std::cout << "trackid " << currenttrackid << "\n";
         }
 
         void checkpointcheck(){
