@@ -450,11 +450,431 @@ class camera{
 
         }
 
-
 };
 
 
 camera maincamera;
+
+class letter{
+    public:
+        std::vector<point> lines;
+
+        void addline(double x,double y ,double otherx ,double othery){
+            point newpoint;
+            newpoint.pos[0] = (x + 0.5)*0.7; // kerning
+            newpoint.pos[1] = 0;
+            newpoint.pos[2] = y;
+
+            point otherpoint;
+            otherpoint.pos[0] = (otherx + 0.5)*0.7;
+            otherpoint.pos[1] = 0;
+            otherpoint.pos[2] = othery;
+
+            lines.push_back(newpoint);
+            lines.push_back(otherpoint);
+        }
+
+
+};
+
+
+class wordwriter{
+    public:
+        std::vector<letter> letters;
+
+        void makeletters(){
+            // all letters are done by drawing lines  with a width
+            letter a;//A
+            a.addline(-0.5,-1 , 0,1);
+            a.addline(0,1 , 0.5,-1);
+            a.addline(-0.25,0 , 0.25,0);
+
+            letter b;//B
+            b.addline(-0.5,1 , -0.5,-1);
+            b.addline(-0.5,1 , 0.3,1);
+            b.addline(-0.5,0 , 0.3,0);
+            b.addline(-0.5,-1 , 0.3,-1);
+            b.addline(0.3,1 , 0.5,0.5);
+            b.addline(0.5,0.5 , 0.3,0);
+            b.addline(0.3,-1 , 0.5,-0.5);
+            b.addline(0.5,-0.5 , 0.3,0);
+
+            letter c;//C
+            c.addline(0.5,0.8 , 0,1);
+            c.addline(0,1 , -0.5,0.8);
+            c.addline(-0.5,0.8 , -0.5,-0.8);
+            c.addline(-0.5,-0.8 , 0,-1);
+            c.addline(0,-1 , 0.5,-0.8);
+
+            letter d;//D
+            d.addline(-0.5,1 , -0.5,-1);
+            d.addline(-0.5,1 , 0.2,1);
+            d.addline(0.2,1 , 0.5,0.6);
+            d.addline(0.5,0.6 , 0.5,-0.6);
+            d.addline(0.5,-0.6 , 0.2,-1);
+            d.addline(0.2,-1 , -0.5,-1);
+
+            letter e;//E
+            e.addline(-0.5,1 , -0.5,-1);
+            e.addline(-0.5,1 , 0.5,1);
+            e.addline(-0.5,0 , 0.4,0);
+            e.addline(-0.5,-1 , 0.5,-1);
+
+            letter f;//F
+            f.addline(-0.5,1 , -0.5,-1);
+            f.addline(-0.5,1 , 0.5,1);
+            f.addline(-0.5,0 , 0.4,0);
+            
+            letter g;//G
+            g.addline(0.5,0.8 , 0,1);
+            g.addline(0,1 , -0.5,0.8);
+            g.addline(-0.5,0.8 , -0.5,-0.8);
+            g.addline(-0.5,-0.8 , 0,-1);
+            g.addline(0,-1 , 0.5,-0.8);
+            g.addline(0.5,-0.8 , 0.5,0);
+            g.addline(0.5,0 , 0,0);
+
+            letter h;//H
+            h.addline(-0.5,1 , -0.5,-1);
+            h.addline(0.5,1 , 0.5,-1);
+            h.addline(-0.5,0 , 0.5,0);
+
+            letter i;//I
+            i.addline(-0.5,1 , 0.5,1);
+            i.addline(-0.5,-1 , 0.5,-1);
+            i.addline(0,1 , 0,-1);
+
+            letter j;//J
+            j.addline(0,1 , 0.5,1);
+            j.addline(0.5,1 , 0.5,-0.8);
+            j.addline(0.5,-0.8 , 0,-1);
+            j.addline(0,-1 , -0.5,-0.8);
+
+            letter k;//K
+            k.addline(-0.5,1 , -0.5,-1);
+            k.addline(-0.5,0 , 0.5,1);
+            k.addline(-0.5,0 , 0.5,-1);
+
+            letter l;//L
+            l.addline(-0.5,1 , -0.5,-1);
+            l.addline(-0.5,-1 , 0.5,-1);
+
+            letter m;//M
+            m.addline(-0.5,1 , -0.5,-1);
+            m.addline(-0.5,1 , 0,0);
+            m.addline(0,0 , 0.5,1);
+            m.addline(0.5,1 , 0.5,-1);
+
+            letter n;//N
+            n.addline(-0.5,1 , -0.5,-1);
+            n.addline(-0.5,1 , 0.5,-1);
+            n.addline(0.5,1 , 0.5,-1);
+
+            letter o;//O
+            o.addline(0.5,0.8 , 0,1);
+            o.addline(0,1 , -0.5,0.8);
+            o.addline(-0.5,0.8 , -0.5,-0.8);
+            o.addline(-0.5,-0.8 , 0,-1);
+            o.addline(0,-1 , 0.5,-0.8);
+            o.addline(0.5,0.8 , 0.5,-0.8);
+
+            letter p;//P
+            p.addline(-0.5,1 , -0.5,-1);
+            p.addline(-0.5,1 , 0.3,1);
+            p.addline(-0.5,0 , 0.3,0);
+            p.addline(0.3,1 , 0.5,0.5);
+            p.addline(0.5,0.5 , 0.3,0);
+
+            letter q;//Q
+            q.addline(0.5,0.8 , 0,1);
+            q.addline(0,1 , -0.5,0.8);
+            q.addline(-0.5,0.8 , -0.5,-0.8);
+            q.addline(-0.5,-0.8 , 0,-1);
+            q.addline(0,-1 , 0.5,-0.8);
+            q.addline(0.5,0.8 , 0.5,-0.8);
+            q.addline(0.25,-0.5 , 0.5,-1);
+
+            letter r;//R
+            r.addline(-0.5,1 , -0.5,-1);
+            r.addline(-0.5,1 , 0.3,1);
+            r.addline(-0.5,0 , 0.3,0);
+            r.addline(0.3,1 , 0.5,0.5);
+            r.addline(0.5,0.5 , 0.3,0);
+            r.addline(0.3,0 , 0.5,-1);
+
+            letter s;//S
+            s.addline(0.5,0.8 , 0,1);
+            s.addline(0,1 , -0.5,0.8);
+            s.addline(-0.5,0.8 , 0.5,-0.8);
+            s.addline(-0.5,-0.8 , 0,-1);
+            s.addline(0,-1 , 0.5,-0.8);
+
+            letter t;//T
+            t.addline(-0.5,1 , 0.5,1);
+            t.addline(0,1 , 0,-1);
+
+            letter u;//U
+            u.addline(-0.5,1 , -0.5,-0.8);
+            u.addline(-0.5,-0.8 , 0,-1);
+            u.addline(0,-1 , 0.5,-0.8);
+            u.addline(0.5,1 , 0.5,-0.8);
+
+            letter v;//V
+            v.addline(-0.5,1 , 0,-1);
+            v.addline(0,-1 , 0.5,1);
+
+            letter w;//W
+            w.addline(-0.5,1 , -0.5,-1);
+            w.addline(-0.5,-1 , 0,0);
+            w.addline(0,0 , 0.5,-1);
+            w.addline(0.5,1 , 0.5,-1);
+
+            letter x;//X
+            x.addline(-0.5,1 , 0.5,-1);
+            x.addline(-0.5,-1 , 0.5,1);
+
+            letter y;//Y
+            y.addline(-0.5,1 , 0,0);
+            y.addline(0.5,1 , 0,0);
+            y.addline(0,0 , 0,-1);
+
+            letter z;//Z
+            z.addline(-0.5,1 , 0.5,1);
+            z.addline(0.5,1 , -0.5,-1);
+            z.addline(-0.5,-1 , 0.5,-1);
+
+            letter zero;//0
+            zero.addline(0.5,0.8 , 0,1);
+            zero.addline(0,1 , -0.5,0.8);
+            zero.addline(-0.5,0.8 , -0.5,-0.8);
+            zero.addline(-0.5,-0.8 , 0,-1);
+            zero.addline(0,-1 , 0.5,-0.8);
+            zero.addline(0.5,0.8 , 0.5,-0.8);
+            zero.addline(-0.5,-0.8 , 0.5,0.8);
+
+
+
+            letter one;//1
+            one.addline(0,1 , 0,-1);
+            one.addline(-0.5,-1 , 0.5,-1);
+            one.addline(0,1 , -0.2,0.9);
+
+            letter two;//2
+            two.addline(-0.5,0.8 , 0,1);
+            two.addline(0,1 , 0.5,0.8);
+            two.addline(0.5,0.8 , -0.5,-1);
+            two.addline(-0.5,-1 , 0.5,-1);
+
+            letter three;//3
+            three.addline(-0.5,0.9 , 0.4,1);
+            three.addline(-0.2,0 , 0.4,0);
+            three.addline(-0.5,-0.9 , 0.4,-1);
+            three.addline(0.4,1 , 0.5,0.5);
+            three.addline(0.5,0.5 , 0.4,0);
+            three.addline(0.4,-1 , 0.5,-0.5);
+            three.addline(0.5,-0.5 , 0.4,0);
+
+            letter four;//4
+            four.addline(0.5,-0.2 , -0.5,-0.2);
+            four.addline(-0.5,-0.2 , 0.2,1);
+            four.addline(0.2,1 , 0.2,-1);
+
+            letter five;//5
+            five.addline(0.5,1 , -0.5,1);
+            five.addline(-0.5,1 , -0.5,0);
+            five.addline(-0.5,0 , 0.4,0.1);
+            five.addline(0.4,0.1 , 0.5,-0.2);
+            five.addline(0.5,-0.2 , 0.4,-1);
+            five.addline(0.4,-1 , -0.5,-0.9);
+
+            letter six;//6
+            six.addline(0.5,0.8 , 0,1);
+            six.addline(0,1 , -0.5,0.8);
+            six.addline(-0.5,0.8 , -0.5,-0.8);
+            six.addline(-0.5,-0.8 , 0,-1);
+            six.addline(0,-1 , 0.5,-0.8);
+            six.addline(0.5,0.2 , 0.5,-0.8);
+            six.addline(0.5,0.2 , 0,0.4);
+            six.addline(0,0.4 , -0.5,0.2);
+
+            letter seven;//7
+            seven.addline(-0.5,1 , 0.5,1);
+            seven.addline(0.5,1 , 0,-1);
+
+            letter eight;//8
+            eight.addline(0,1 , -0.5,0.8);
+            eight.addline(-0.5,0.8 , 0.5,-0.8);
+            eight.addline(0.5,-0.8 , 0,-1);
+            eight.addline(0,-1 , -0.5,-0.8);
+            eight.addline(-0.5,-0.8 , 0.5,0.8);
+            eight.addline(0.5,0.8 , 0,1);
+
+            letter nine;//9
+            nine.addline(-0.5,-0.8 , 0,-1);
+            nine.addline(0,-1 , 0.5,-0.8);
+            nine.addline(0.5,-0.8 , 0.5,0.8);
+            nine.addline(0.5,0.8 , 0,1);
+            nine.addline(0,1 , -0.5,0.8);
+            nine.addline(-0.5,-0.2 , -0.5,0.8);
+            nine.addline(-0.5,-0.2 , 0,-0.4);
+            nine.addline(0,-0.4 , 0.5,-0.2);
+
+
+
+            letter dot;//.
+            dot.addline(0,-0.8 , 0,-0.8);
+
+            letter colon;//:
+            colon.addline(0,-0.8 , 0,-0.8);
+            colon.addline(0,0.8 , 0,0.8);
+
+
+
+
+
+
+
+            letters.push_back(a);
+            letters.push_back(b);
+            letters.push_back(c);
+            letters.push_back(d);
+            letters.push_back(e);
+            letters.push_back(f);
+            letters.push_back(g);
+            letters.push_back(h);
+            letters.push_back(i);
+            letters.push_back(j);
+            letters.push_back(k);
+            letters.push_back(l);
+            letters.push_back(m);
+            letters.push_back(n);
+            letters.push_back(o);
+            letters.push_back(p);
+            letters.push_back(q);
+            letters.push_back(r);
+            letters.push_back(s);
+            letters.push_back(t);
+            letters.push_back(u);
+            letters.push_back(v);
+            letters.push_back(w);
+            letters.push_back(x);
+            letters.push_back(y);
+            letters.push_back(z);
+
+            letters.push_back(zero);
+            letters.push_back(one);
+            letters.push_back(two);
+            letters.push_back(three);
+            letters.push_back(four);
+            letters.push_back(five);
+            letters.push_back(six);
+            letters.push_back(seven);
+            letters.push_back(eight);
+            letters.push_back(nine);
+
+            letters.push_back(dot);
+            letters.push_back(colon);
+
+
+        }
+
+        void writeletter(int x,int y,double size,char theletter ,int width){// for width could get manhatan dists then draw lines across
+            int num;
+            //std::cout << "words " << int(theletter) << "\n";
+            if (int(theletter) == 32){num = -1;}
+            else if (int(theletter) >= 97 && int(theletter) <= 26+97){
+                num = int(theletter)-97;// will get location in list
+            }
+            else if (int(theletter) >= 48 && int(theletter) <= 57){
+                num = int(theletter)-48+26;
+
+            }
+            else if (int(theletter) == 46){
+                num = 36;
+            }
+            else if (int(theletter) == 58){
+                num = 37;
+            }
+            if (num == -1){}
+            else{
+                //std::cout << "words " << int(theletter) << "\n";
+                //std::cout << "words" << letters[num].lines.size() << "\n";
+                for (int i = 0;i < letters[num].lines.size();i = i+2){
+                    
+                    int startx = letters[num].lines[i].pos[0]*size + x;
+                    int starty = letters[num].lines[i].pos[2]*size + y;
+                    int endx = letters[num].lines[i+1].pos[0]*size + x;
+                    int endy = letters[num].lines[i+1].pos[2]*size + y;
+                    
+                    int miny = starty - width;
+                    if (endy - width < miny){
+                        miny = endy - width;
+                    }
+                    int maxy = starty + width;
+                    if (endy + width > maxy){
+                        maxy = endy + width;
+                    }
+                    
+                    for (int j = miny; j < maxy+1; j++){
+                        int minx;
+                        int maxx;
+                        int xintercept;
+                        double rowwidth;
+                        if (starty == endy){
+                            xintercept = (startx+endx)/2; // get the middle
+                            rowwidth = abs(endx-startx)/2+width;
+                        }
+                        else{
+                            double m = (endx-startx)/(double)(endy-starty);
+                            xintercept = startx + (j-starty)*m;
+                            if (m != 0){
+                                rowwidth = abs(width/(sin(atan(1/m))));
+                            }
+                            else{
+                                rowwidth = width;
+                            }
+                        }
+                        minx = startx - width;
+                        if (endx - width < minx){
+                            minx = endx - width;
+                        }
+                        maxx = startx + width;
+                        if (endx + width > maxx){
+                            maxx = endx + width;
+                        }
+
+                        if (xintercept+rowwidth >= minx && xintercept+rowwidth <= maxx){
+                            maxx = xintercept+rowwidth;
+                        }
+                        if (xintercept-rowwidth >= minx && xintercept-rowwidth <= maxx){
+                            minx = xintercept-rowwidth;
+                        }
+                        //std::cout << "words" << minx << " " << maxx << " " << j << "\n";
+                        //std::cout << "words" << rowwidth << " " << (endx-startx)/(double)(endy-starty) << "\n";
+                        
+                        SDL_SetRenderDrawColor(renderer , 0,0,0,255);
+                        SDL_RenderDrawLine(renderer , minx+dispwidth/2 , -j+dispheight/2 , maxx+dispwidth/2 , -j+dispheight/2);
+
+                    }
+
+                    //std::cout << "words" << startx << " " << starty << " " << endx << " "  << endy << "\n";
+                    SDL_SetRenderDrawColor(renderer , 255,0,0,255);
+                    SDL_RenderDrawLine(renderer , startx+dispwidth/2, -starty+dispheight/2 , endx+dispwidth/2, -endy+dispheight/2);
+                }
+            }
+        }
+
+        void writechars(int x , int y , double size , std::string shownstring , int width){
+
+            for (int i = 0; i < shownstring.length();i++){
+                //std::cout << "words " << shownstring[i] <<"\n";
+                writeletter(x + i*size , y , size , shownstring[i] , width);
+            }
+
+        }
+};
+
+wordwriter mainwordwriter;
 
 
 class road{
@@ -2213,7 +2633,7 @@ int main(int argc, char **argv)
         road roadsegment5(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment5);*/
 
-
+        mainwordwriter.makeletters();
 
         mainplayer.makecar();
         mainplayer.selfpos[0] = 0;
@@ -2222,6 +2642,8 @@ int main(int argc, char **argv)
         mainplayer.totalnumcheckpoints = 9;
         /*mainplayer.selfpos[0] = 3072;
         mainplayer.totalnumcheckpoints = 6;*/
+
+        mainplayer.rotate(0,-0.3);
 
 
         while (!quit) { //main loop
@@ -2293,26 +2715,11 @@ int main(int argc, char **argv)
             double length = 2048;
             double scaler = 128/length;
 
-            /*SDL_SetRenderDrawColor(renderer , 0, 0, 0, 255); // this shows on the map where it thinks is in the track but is quite slow so not used exept debug
-            for (double  i = -3036; i < 3036; i = i + 64){
-                for (double j = -3036; j < 3036; j = j + 64){
-                    //std::cout << j << "\n";
-                    double thispoint[3] = {i , 0 , j};
-                    
-                    bool isontrack = false;
-                    for (int k = 0; k < maintrack.size();k++){
-                        if (maintrack[k].isontrack(thispoint)){
-                            isontrack = true;
-                            //std::cout << i << " " << j << " hey look i found the track\n";
-                        }
-                    }
-                    if (isontrack){
-                        SDL_RenderDrawLine(renderer, i*scaler+dispwidth/2, j*scaler+dispheight/2, i*scaler+dispwidth/2 , j*scaler+dispheight/2);
-                        //std::cout << i*scaler+dispwidth/2 << " " << j*scaler+dispheight/2 << "\n";
-                    }
-                }
-            }*/
-
+            std::string hellostring = "hello abcdefghijklmnopqrstuvwxyz";//"a";//
+            SDL_SetRenderDrawColor(renderer ,0x00 ,0x00 ,0x00 ,0xff);
+            mainwordwriter.writechars(-dispwidth/2+32,0,32,hellostring,2);
+            std::string numstring = "0123456789:.";
+            mainwordwriter.writechars(-dispwidth/2+256 , -128 , 32, numstring,2);
 
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth / 2, mainplayer.selfpos[2]*scaler+dispheight/2);
