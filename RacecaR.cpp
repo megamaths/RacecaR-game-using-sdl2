@@ -12,6 +12,8 @@ const int dispdist = 1024;
 const double camspeed = 16;
 const double camrotspeed = 0.025;
 
+double lightpos[3] = {128, -1024 , 0};
+
 
 //The window we'll be rendering to
 SDL_Window* window = NULL;
@@ -136,7 +138,9 @@ bool isinpoly(std::vector<point> polygon, point querypoint){
             firstside = (side > 0);
         }
         if ((side > 0) != firstside){
-            return false;
+            if (side != 0){
+                return false;
+            }
         }
     }
     
@@ -1322,10 +1326,7 @@ class face{ // a list of points in a order
 
                 maincamera.preppolygon(currentpolygon,currentpolygon.size());
 
-                double lightpos[3];
-                lightpos[0] = 128;
-                lightpos[1] = -1024;
-                lightpos[2] = 0;
+                
 
                 double brightness = 0.5-pointdotnorm(lightpos,center)/2;
                 std::cout << brightness << " brightness\n";
@@ -1616,8 +1617,11 @@ class player{
         void relmove(double x,double y,double z){// relative to player
             needtomove[1] = needtomove[1] + y;// height change not depend on the direction pointing
 
-            needtomove[0] = needtomove[0] + x*cos(maincamera.xangle)-z*sin(maincamera.xangle);
-            needtomove[2] = needtomove[2] + x*sin(maincamera.xangle)+z*cos(maincamera.xangle);
+            /*needtomove[0] = needtomove[0] + x*cos(maincamera.xangle)-z*sin(maincamera.xangle);
+            needtomove[2] = needtomove[2] + x*sin(maincamera.xangle)+z*cos(maincamera.xangle);*/
+
+            needtomove[0] = needtomove[0] + x*pointing[2]+z*pointing[0];
+            needtomove[2] = needtomove[2] + x*pointing[0]+z*pointing[2];
         }
 
         void premove(double x,double y,double z){
@@ -1958,14 +1962,7 @@ class player{
             }
         }
 
-
-
-        void update(){
-
-            getcurrenttrackid();
-
-            slopeaccelerate();
-
+        void checkpointcheck(){
             if (currenttrackid != -1){
                 int checkpointid = maintrack[currenttrackid].isincheckpoint(selfpos);
                 if (checkpointid != -1){
@@ -1981,15 +1978,11 @@ class player{
                         std::cout << "checkpoint " << checkpointid << "\n";
                     }
 
-
                     if (checkpointid == 0 && checkpointspassed.size() == totalnumcheckpoints){
                         checkpointspassed.clear();
 
                         timeval currenttime;
-
                         gettimeofday(&currenttime,NULL);
-
-                        //std::cout << "checkpoint last time " << timeatcheckpoint << "\n";
 
                         long long newtime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
 
@@ -1998,8 +1991,6 @@ class player{
                         laptimes.push_back(newtime-timeatcheckpoint);
 
                         timeatcheckpoint = newtime;
-
-                        //std::cout << "checkpoint time " << timeatcheckpoint << "\n";
 
                         long long currentmintime = laptimes[0];
                         long long totaltime = laptimes[0];
@@ -2017,6 +2008,17 @@ class player{
                     }
                 }
             }
+        }
+
+
+
+        void update(){
+
+            getcurrenttrackid();
+
+            slopeaccelerate();
+
+            checkpointcheck();
 
 
             speedcheck();
@@ -2084,62 +2086,51 @@ void renderground(){
 }
 
 
+void gettrack(int num){
 
-bool startup(){ // basic set up
+    maintrack.clear();
+    hyperpoint startpoint;
+    hyperpoint midpoint;
+    hyperpoint midpoint2;
+    hyperpoint endpoint;
+    std::vector<hyperpoint> roadpoints;
 
+    if (num == -1){// start screen
+        mainplayer.selfpos[0] = 0;
+        mainplayer.selfpos[2] = -1536;
+        mainplayer.rotate(0,0);
+        mainplayer.totalnumcheckpoints = 1;
 
-    window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, dispwidth, dispheight, SDL_WINDOW_SHOWN );
-    std::cout << window;
-    if( window == NULL ){
-        std::cout << "Window could not be created! SDL_Error: " << SDL_GetError() << "\n";
-        return false;
+        double roadlength = 4096;
+        double roadspacing = 64;
+        double roadwidth = 256;
+        double roadid = 0;
+
+        startpoint.pos[0] = 0;
+        startpoint.pos[1] = 0;
+        startpoint.pos[2] = -2048;
+        startpoint.pos[3] = 0;
+
+        endpoint.pos[0] = 0;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = 2048;
+        endpoint.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+
+        road roadsegment0(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment0);
     }
-    renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED );
-    if( renderer == NULL ){
-        std::cout << "renderer could not be created! SDL_Error: " << SDL_GetError() << "\n";
-        return false;
-    }
 
 
-    return true;
+    if (num == 0){
 
-}
-
-void shutdown(){ //basic closing thing
-    //destroy renderer
-    SDL_DestroyRenderer( renderer );
-
-    //Destroy window
-    SDL_DestroyWindow( window );
-
-    //Quit SDL subsystems
-    SDL_Quit();
-
-
-}
-
-
-
-int main(int argc, char **argv)
-{
-    if (startup())
-    {
-        screenSurface = SDL_GetWindowSurface( window );
-        SDL_SetRenderDrawColor( renderer, 0xFF, 0xFF, 0xFF, 0xFF );
-
-        bool quit = false;
-        SDL_Event e;
-
-        int blue = 0xff;
-        int green = 0xff;
-        int red = 0x00;
-        SDL_UpdateWindowSurface( window );
-
-        hyperpoint startpoint;
-        hyperpoint midpoint;
-        hyperpoint midpoint2;
-        hyperpoint endpoint;
-        std::vector<hyperpoint> roadpoints;
+        mainplayer.selfpos[0] = 0;
+        mainplayer.selfpos[2] = -2048;
+        mainplayer.rotate(M_PI,0);
+        mainplayer.totalnumcheckpoints = 9;
 
         //curve 1
         
@@ -2425,16 +2416,14 @@ int main(int argc, char **argv)
 
         road roadsegment8(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment8);
+    }
 
 
         
 
-
-        /*hyperpoint startpoint;
-        hyperpoint midpoint;
-        hyperpoint midpoint2;
-        hyperpoint endpoint;
-        std::vector<hyperpoint> roadpoints;
+    if (num == 1){
+        mainplayer.selfpos[0] = 3072;
+        mainplayer.totalnumcheckpoints = 6;
 
         //curve 1
         
@@ -2631,17 +2620,133 @@ int main(int argc, char **argv)
         roadpoints.push_back(endpoint);
 
         road roadsegment5(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment5);*/
+        maintrack.push_back(roadsegment5);
+    }
+}
+
+
+
+bool startup(){ // basic set up
+
+
+    window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, dispwidth, dispheight, SDL_WINDOW_SHOWN );
+    std::cout << window;
+    if( window == NULL ){
+        std::cout << "Window could not be created! SDL_Error: " << SDL_GetError() << "\n";
+        return false;
+    }
+    renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED );
+    if( renderer == NULL ){
+        std::cout << "renderer could not be created! SDL_Error: " << SDL_GetError() << "\n";
+        return false;
+    }
+
+
+    return true;
+
+}
+
+void shutdown(){ //basic closing thing
+    //destroy renderer
+    SDL_DestroyRenderer( renderer );
+
+    //Destroy window
+    SDL_DestroyWindow( window );
+
+    //Quit SDL subsystems
+    SDL_Quit();
+
+
+}
+
+
+
+int main(int argc, char **argv)
+{
+    if (startup())
+    {
+        screenSurface = SDL_GetWindowSurface( window );
+        SDL_SetRenderDrawColor( renderer, 0xFF, 0xFF, 0xFF, 0xFF );
+
+        bool quit = false;
+        SDL_Event e;
+
+        int blue = 0xff;
+        int green = 0xff;
+        int red = 0x00;
+        SDL_UpdateWindowSurface( window );
 
         mainwordwriter.makeletters();
-
         mainplayer.makecar();
-        mainplayer.selfpos[0] = 0;
-        mainplayer.selfpos[2] = -2048;
-        mainplayer.rotate(M_PI,0);
-        mainplayer.totalnumcheckpoints = 9;
-        /*mainplayer.selfpos[0] = 3072;
-        mainplayer.totalnumcheckpoints = 6;*/
+
+        bool started = false;
+        gettrack(-1);
+
+        double mainmenucarspeed = 8;
+        maincamera.rotate(-0.7 , -0.2);
+
+        while (!started){// start menu stuff
+            while ( SDL_PollEvent( &e ) != 0 ){ //basic event thing so can quit
+                if( e.type == SDL_QUIT ){
+                    started = true;
+                    quit = true;
+                }
+                else if( e.type == SDL_KEYDOWN ){
+                    if (e.key.keysym.sym == SDLK_ESCAPE){
+                    started = true;
+                    quit = true;
+                    }
+                }
+            }
+
+            // get key input area
+            const Uint8* currentKeyStates = SDL_GetKeyboardState( NULL );
+
+            if( currentKeyStates[ SDL_SCANCODE_SPACE ] ){
+                std::cout << "START\n";
+                started = true;
+            }
+
+            
+
+            // all the main physics
+            if (mainplayer.selfpos[2] > 0){
+                mainplayer.selfpos[2] = -1536;
+            }
+            mainplayer.relmove(0 , 0 , mainmenucarspeed);
+            mainplayer.move();
+
+            SDL_SetRenderDrawColor( renderer, red, green, blue, 0xFF );
+            SDL_FillRect( screenSurface, NULL, SDL_MapRGB (screenSurface->format,red,green,blue )); // set background
+
+
+            SDL_RenderClear( renderer ); // start rendering objects
+
+
+            renderground();
+
+
+            mainplayer.selfrender();
+            std::cout << "carpos " << mainplayer.selfpos[0] << " " << mainplayer.selfpos[1] << " " << mainplayer.selfpos[2] << "\n";
+            std::cout << "carpos " << mainplayer.pointing[0] << " " << mainplayer.pointing[1] << " " << mainplayer.pointing[2] << "\n";
+
+            std::string hellostring = "racecar";
+            SDL_SetRenderDrawColor(renderer ,0x00 ,0x00 ,0x00 ,0xff);
+            mainwordwriter.writechars(-dispwidth/2+32,128,64,hellostring,4);
+            std::string numstring = "space to continue";
+            mainwordwriter.writechars(-dispwidth/2+256 , -128 , 32, numstring,2);
+
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_RenderPresent( renderer ); //update renderer ??
+            SDL_Delay(1000/60);
+
+        }
+
+
+
+        gettrack(0);
+
+        
 
         mainplayer.rotate(0,-0.3);
 
@@ -2715,7 +2820,7 @@ int main(int argc, char **argv)
             double length = 2048;
             double scaler = 128/length;
 
-            std::string hellostring = "hello abcdefghijklmnopqrstuvwxyz";//"a";//
+            std::string hellostring = "hello abcdefghijklmnopqrstuvwxyz";
             SDL_SetRenderDrawColor(renderer ,0x00 ,0x00 ,0x00 ,0xff);
             mainwordwriter.writechars(-dispwidth/2+32,0,32,hellostring,2);
             std::string numstring = "0123456789:.";
