@@ -12,11 +12,13 @@ const int dispdist = 1024;
 const double camspeed = 16;
 const double camrotspeed = 0.025;
 
+const bool fullzbuffer = false; // decide if use z buffer (slow but reliable ) or just draw further polygons first (fast may cause cliping)
+
 double lightpos[3] = {128, -1024 , 0};
 double lightshade[3] = {1,1,1};
 
 
-//The window we'll be rendering to
+//The window we'll be rendering toSS
 SDL_Window* window = NULL;
 
 //The surface contained by the window
@@ -164,6 +166,12 @@ bool isinpoly(std::vector<point> polygon, point querypoint){
     return true;
 }
 
+struct Bufferpolygon{// what is stored in the buffer
+    std::vector<point> points;
+    double distance;
+    int colour[3];
+};
+
 
 class buffer{// a z buffer for giving polygons
     public:
@@ -173,6 +181,8 @@ class buffer{// a z buffer for giving polygons
         double b;
         double c;
         double d;
+
+        std::vector<Bufferpolygon> polygonbuffer;
 
 
         void newframe(){
@@ -324,11 +334,53 @@ class buffer{// a z buffer for giving polygons
             }
         }
 
-        bool ispointhidden(double x ,double y, double z){ //returns if a point is hidden for less important triangles
+        bool ispointhidden(double x ,double y, double z){ //returns if a point is hidden for less important triangles works with the fill poly buffer function
             if (zvals[(x+dispheight/2)*dispwidth + y+dispwidth/2] < z){
                 return false;
             }
             return true;
+
+        }
+
+        void simplebuffer(std::vector<point> polygon , int r , int g , int b){ //adds polygon to a list incomplatible to fill poly buffer
+            Bufferpolygon newpolygon;
+            newpolygon.points = polygon;
+            double distz = 0;
+            for (int i = 0; i < polygon.size(); i++){
+                if (polygon[i].pos[2] > distz){
+                    distz = polygon[i].pos[2];
+                }
+                //distz = distz + polygon[i].pos[2];// ave point
+            }
+            //distz = distz/polygon.size();// avepoint
+            newpolygon.distance = distz;
+
+            newpolygon.colour[0] = r;
+            newpolygon.colour[1] = g;
+            newpolygon.colour[2] = b;
+
+            polygonbuffer.push_back(newpolygon);
+        }
+
+        void showlisted(){ // goes through above list and shows them in order of reverse dist to center incomplatible to fill poly buffer
+
+            for (int i = 0; i < polygonbuffer.size(); i++){
+                int nextpoly = 0;
+                for (int j = 0; j < polygonbuffer.size(); j++){
+                    if (polygonbuffer[j].distance > polygonbuffer[nextpoly].distance){
+                        nextpoly = j;
+                    }
+                }
+                if (polygonbuffer[nextpoly].distance != -1){// not already done it
+                    polygonbuffer[nextpoly].distance = -1;
+                    SDL_SetRenderDrawColor(renderer , polygonbuffer[nextpoly].colour[0]*lightshade[0] , polygonbuffer[nextpoly].colour[1]*lightshade[1]
+                                                    , polygonbuffer[nextpoly].colour[2]*lightshade[2] , 255);
+                    std::cout << "polybuffer " << nextpoly << "\n";
+                    fillpoly(polygonbuffer[nextpoly].points);
+                }
+            }
+
+            polygonbuffer.clear();
 
         }
 
@@ -1261,7 +1313,18 @@ class road{
                 maincamera.preppolygon(newpolygon,4);
 
                 if (newpolygon.size() != 0){
-                    mainbuffer.fillpolybuffered(newpolygon);
+                    if (fullzbuffer){
+                        mainbuffer.fillpolybuffered(newpolygon);
+                    }
+                    else{
+                        if (segnum%2 == 0){
+                            mainbuffer.simplebuffer(newpolygon , 0x90 ,0x90 ,0x90);
+                        }
+                        else{
+                            mainbuffer.simplebuffer(newpolygon , 0x70 ,0x70 ,0x70);
+                        }
+                        
+                    }
                 }
                 
 
@@ -1522,8 +1585,12 @@ class face{ // a list of points in a order
 
                 SDL_SetRenderDrawColor(renderer, colour[0]*brightness*lightshade[0], colour[1]*brightness*lightshade[1]
                                                 , colour[2]*brightness*lightshade[2], 255);
-        
-                fillpoly(currentpolygon);
+                if (fullzbuffer){
+                    mainbuffer.fillpolybuffered(currentpolygon);
+                }
+                else{
+                    mainbuffer.simplebuffer(currentpolygon, colour[0]*brightness, colour[1]*brightness, colour[2]*brightness);
+                }
             }
         }
 
@@ -2897,13 +2964,15 @@ bool startscreen(){
         std::cout << "carpos " << mainplayer.selfpos[0] << " " << mainplayer.selfpos[1] << " " << mainplayer.selfpos[2] << "\n";
         std::cout << "carpos " << mainplayer.pointing[0] << " " << mainplayer.pointing[1] << " " << mainplayer.pointing[2] << "\n";
 
+        mainbuffer.showlisted();
+        
+
         std::string hellostring = "racecar";
         SDL_SetRenderDrawColor(renderer ,0x00 ,0x00 ,0x00 ,0xff);
         mainwordwriter.writechars(-dispwidth/2+32,128,64,hellostring,4);
         std::string numstring = "space to continue";
         mainwordwriter.writechars(-dispwidth/2+256 , -128 , 32, numstring,2);
 
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
         SDL_RenderPresent( renderer ); //update renderer ??
         //SDL_Delay(1000/60);
 
@@ -3011,6 +3080,7 @@ bool finishedrace(){
 
         mainplayer.selfrender();
 
+        mainbuffer.showlisted();
 
         SDL_SetRenderDrawColor(renderer ,0x00 ,0x00 ,0x00 ,0xff);
         
@@ -3028,6 +3098,7 @@ bool finishedrace(){
         }
 
         mainwordwriter.writechars(-256 , -256 , 48, totalracetimestring,4);
+
 
         SDL_RenderPresent( renderer ); //update renderer ??
 
@@ -3185,8 +3256,9 @@ int main(int argc, char **argv)
 
 
             mainplayer.selfrender();
-            double length = 2048;
-            double scaler = 128/length;
+
+            mainbuffer.showlisted();
+            
 
             timeval currenttime;
             gettimeofday(&currenttime,NULL);
@@ -3263,12 +3335,14 @@ int main(int argc, char **argv)
 
             //mainplayer.startrace();// used to work out time per sec
 
-            
+            double length = 2048;
+            double scaler = 128/length;
             
 
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
             SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth / 2, mainplayer.selfpos[2]*scaler+dispheight/2);
             SDL_RenderDrawPoint(renderer, dispwidth / 2, dispheight/2);
+
             SDL_RenderPresent( renderer ); //update renderer ??
             //SDL_Delay(1000/60);
 
