@@ -13,6 +13,7 @@ const double camspeed = 16;
 const double camrotspeed = 0.025;
 
 double lightpos[3] = {128, -1024 , 0};
+double lightshade[3] = {1,1,1};
 
 
 //The window we'll be rendering to
@@ -321,6 +322,14 @@ class buffer{// a z buffer for giving polygons
                     }
                 }
             }
+        }
+
+        bool ispointhidden(double x ,double y, double z){ //returns if a point is hidden for less important triangles
+            if (zvals[(x+dispheight/2)*dispwidth + y+dispwidth/2] < z){
+                return false;
+            }
+            return true;
+
         }
 
 
@@ -1046,7 +1055,7 @@ class wordwriter{
                     }
 
                     //std::cout << "words" << startx << " " << starty << " " << endx << " "  << endy << "\n";
-                    SDL_SetRenderDrawColor(renderer , 255,0,0,255);
+                    SDL_SetRenderDrawColor(renderer , 255*lightshade[0],0*lightshade[1],0*lightshade[2],255);
                     SDL_RenderDrawLine(renderer , startx+dispwidth/2, -starty+dispheight/2 , endx+dispwidth/2, -endy+dispheight/2);
                 }
             }
@@ -1203,10 +1212,10 @@ class road{
             int segnum = 0;
             for (double dist = spacing;dist < length+spacing;dist += spacing){
                 if (segnum%2 == 0){
-                    SDL_SetRenderDrawColor( renderer, 0x70, 0x70, 0x70, 0xFF);
+                    SDL_SetRenderDrawColor( renderer, 0x70*lightshade[0], 0x70*lightshade[1], 0x70*lightshade[2], 0xFF);
                 }
                 else{
-                    SDL_SetRenderDrawColor( renderer, 0x90, 0x90, 0x90, 0xFF);
+                    SDL_SetRenderDrawColor( renderer, 0x90*lightshade[0], 0x90*lightshade[1], 0x90*lightshade[2], 0xFF);
                 }
                 segnum = segnum + 1;
 
@@ -1511,7 +1520,8 @@ class face{ // a list of points in a order
                 double brightness = 0.5-pointdotnorm(lightpos,center)/2;
                 std::cout << brightness << " brightness\n";
 
-                SDL_SetRenderDrawColor(renderer, colour[0]*brightness, colour[1]*brightness, colour[2]*brightness, 255);
+                SDL_SetRenderDrawColor(renderer, colour[0]*brightness*lightshade[0], colour[1]*brightness*lightshade[1]
+                                                , colour[2]*brightness*lightshade[2], 255);
         
                 fillpoly(currentpolygon);
             }
@@ -1711,6 +1721,7 @@ class player{
         long long timelapstart;
         long long timestartrace;
         std::vector<long long> laptimes;
+        int numlaps;
 
 
         int currenttrackid;
@@ -2261,13 +2272,13 @@ void renderground(){
         }
     }
     if (carincheckpoint){
-        SDL_SetRenderDrawColor( renderer, 0x00, 0x00, 0xff, 0xFF );
+        SDL_SetRenderDrawColor( renderer, 0x00*lightshade[0], 0x00*lightshade[1], 0xff*lightshade[2], 0xFF );
     }
     else if (iscarontrack){
-        SDL_SetRenderDrawColor( renderer, 0x00, 0xff, 0x00, 0xFF );
+        SDL_SetRenderDrawColor( renderer, 0x00*lightshade[0], 0xff*lightshade[1], 0x00*lightshade[2], 0xFF );
     }
     else{
-        SDL_SetRenderDrawColor( renderer, 0xff, 0x00, 0xff, 0xFF );
+        SDL_SetRenderDrawColor( renderer, 0xff*lightshade[0], 0x00*lightshade[1], 0xff*lightshade[2], 0xFF );
     }
     for (int i = horizon;i < dispheight;i++){
         SDL_RenderDrawLine(renderer , 0,i,dispwidth,i);
@@ -2298,6 +2309,7 @@ void gettrack(int num){
         mainplayer.selfpos[2] = -1536;
         mainplayer.rotate(0,0);
         mainplayer.totalnumcheckpoints = 1;
+        mainplayer.numlaps = 0;
 
         double roadlength = 4096;
         double roadspacing = 64;
@@ -2329,6 +2341,7 @@ void gettrack(int num){
         mainplayer.selfpos[2] = -2048;
         mainplayer.rotate(M_PI,0);
         mainplayer.totalnumcheckpoints = 9;
+        mainplayer.numlaps = 3;
 
         //curve 1
         
@@ -2622,6 +2635,7 @@ void gettrack(int num){
     if (num == 1){
         mainplayer.selfpos[0] = 3072;
         mainplayer.totalnumcheckpoints = 6;
+        mainplayer.numlaps = 3;
 
         //curve 1
         
@@ -2823,6 +2837,211 @@ void gettrack(int num){
 }
 
 
+bool startscreen(){
+    SDL_Event e;
+
+
+    int blue = 0xff;
+    int green = 0xff;
+    int red = 0x00;
+
+    bool started = false;
+    gettrack(-1);
+
+    double mainmenucarspeed = 8;
+    maincamera.rotate(-0.7 , -0.2);
+
+    while (!started){// start menu stuff
+        while ( SDL_PollEvent( &e ) != 0 ){ //basic event thing so can quit
+            if( e.type == SDL_QUIT ){
+                started = true;
+                return true;
+            }
+            else if( e.type == SDL_KEYDOWN ){
+                if (e.key.keysym.sym == SDLK_ESCAPE){
+                started = true;
+                return true;
+                }
+            }
+        }
+
+        // get key input area
+        const Uint8* currentKeyStates = SDL_GetKeyboardState( NULL );
+
+        if( currentKeyStates[ SDL_SCANCODE_SPACE ] ){
+            std::cout << "START\n";
+            started = true;
+        }
+
+        
+
+        // all the main physics
+        if (mainplayer.selfpos[2] > 0){
+            mainplayer.selfpos[2] = -1536;
+        }
+        mainplayer.relmove(0 , 0 , mainmenucarspeed);
+        mainplayer.move();
+
+        SDL_SetRenderDrawColor( renderer, red*lightshade[0], green*lightshade[1], blue*lightshade[2], 0xFF );
+        SDL_FillRect( screenSurface, NULL, SDL_MapRGB (screenSurface->format,red,green,blue )); // set background
+
+
+        SDL_RenderClear( renderer ); // start rendering objects
+        mainbuffer.newframe();
+
+
+        renderground();
+
+
+        mainplayer.selfrender();
+        std::cout << "carpos " << mainplayer.selfpos[0] << " " << mainplayer.selfpos[1] << " " << mainplayer.selfpos[2] << "\n";
+        std::cout << "carpos " << mainplayer.pointing[0] << " " << mainplayer.pointing[1] << " " << mainplayer.pointing[2] << "\n";
+
+        std::string hellostring = "racecar";
+        SDL_SetRenderDrawColor(renderer ,0x00 ,0x00 ,0x00 ,0xff);
+        mainwordwriter.writechars(-dispwidth/2+32,128,64,hellostring,4);
+        std::string numstring = "space to continue";
+        mainwordwriter.writechars(-dispwidth/2+256 , -128 , 32, numstring,2);
+
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderPresent( renderer ); //update renderer ??
+        //SDL_Delay(1000/60);
+
+    }
+
+    mainplayer.rotate(0.7,-0.1);// also undo previous camangle
+    mainplayer.update();
+
+    return false;
+
+}
+
+bool finishedrace(){
+    SDL_Event e;
+
+
+    int blue = 0xff;
+    int green = 0xff;
+    int red = 0x00;
+
+    lightshade[0] = 0.4;
+    lightshade[1] = 0.4;
+    lightshade[2] = 0.4;
+
+
+    bool quit = false;
+
+    std::vector<std::string> stringlaptimes;
+    int bestlap = 0;
+
+    std::string mins;
+    std::string secs;
+    std::string milsecs;
+
+    long long totalracetime = 0;
+
+    for (int i = 0; i < mainplayer.laptimes.size(); i++){
+        totalracetime = totalracetime + mainplayer.laptimes[i];
+
+        mins = std::to_string((mainplayer.laptimes[i]/1000000)/60);
+        secs = std::to_string((mainplayer.laptimes[i]/1000000)%60);
+        milsecs = std::to_string((mainplayer.laptimes[i]/1000)%1000);
+        std::string istr = std::to_string(i+1) + " ";
+
+        secs = std::string((2-secs.length()),'0') +secs;
+        milsecs = std::string((3-milsecs.length()),'0') +milsecs;
+
+        std::string laptimestring = "lap " + istr + mins + ":" + secs + "." + milsecs;
+
+        stringlaptimes.push_back(laptimestring);
+
+        if (mainplayer.laptimes[i] < mainplayer.laptimes[bestlap]){
+            bestlap = i;
+        }
+
+
+    }
+
+    mins = std::to_string((totalracetime/1000000)/60);
+    secs = std::to_string((totalracetime/1000000)%60);
+    milsecs = std::to_string((totalracetime/1000)%1000);
+
+    secs = std::string((2-secs.length()),'0') +secs;
+    milsecs = std::string((3-milsecs.length()),'0') +milsecs;
+
+    std::string totalracetimestring = "total " + mins + ":" + secs + "." + milsecs;
+
+
+    while (!quit){
+        while ( SDL_PollEvent( &e ) != 0 ){ //basic event thing so can quit
+            if( e.type == SDL_QUIT ){
+                quit = true;
+                return true;
+            }
+            else if( e.type == SDL_KEYDOWN ){
+                if (e.key.keysym.sym == SDLK_ESCAPE){
+                quit = true;
+                return true;
+                }
+            }
+        }
+
+        // get key input area
+        const Uint8* currentKeyStates = SDL_GetKeyboardState( NULL );
+
+        if( currentKeyStates[ SDL_SCANCODE_SPACE ] ){
+            std::cout << "continue\n";
+            quit = true;
+        }
+
+        // all the main physics
+        mainplayer.update();
+        
+
+        SDL_SetRenderDrawColor( renderer, red*lightshade[0], green*lightshade[1], blue*lightshade[2], 0xFF );
+        SDL_FillRect( screenSurface, NULL, SDL_MapRGB (screenSurface->format,red,green,blue )); // set background
+
+
+        SDL_RenderClear( renderer ); // start rendering objects
+        mainbuffer.newframe();
+
+
+        renderground();
+
+
+        mainplayer.selfrender();
+
+
+        SDL_SetRenderDrawColor(renderer ,0x00 ,0x00 ,0x00 ,0xff);
+        
+        for (int i = 0; i < stringlaptimes.size(); i++){
+            if (i == bestlap){
+                mainwordwriter.writechars(-256 , 256-80*i , 32, stringlaptimes[i],4);
+                std::string bestlapstring = " best";
+                mainwordwriter.writechars(-256 + 32*stringlaptimes[i].length() , 256-80*i , 32, bestlapstring,4);
+                
+            }
+            else{
+                mainwordwriter.writechars(-256 , 256-80*i , 32, stringlaptimes[i],4);
+            }
+            
+        }
+
+        mainwordwriter.writechars(-256 , -256 , 48, totalracetimestring,4);
+
+        SDL_RenderPresent( renderer ); //update renderer ??
+
+    }
+
+    lightshade[0] = 1;
+    lightshade[1] = 1;
+    lightshade[2] = 1;
+
+    return false;
+
+}
+
+
 
 bool startup(){ // basic set up
 
@@ -2854,7 +3073,6 @@ void shutdown(){ //basic closing thing
     //Quit SDL subsystems
     SDL_Quit();
 
-
 }
 
 
@@ -2864,7 +3082,7 @@ int main(int argc, char **argv)
     if (startup())
     {
         screenSurface = SDL_GetWindowSurface( window );
-        SDL_SetRenderDrawColor( renderer, 0xFF, 0xFF, 0xFF, 0xFF );
+        SDL_SetRenderDrawColor( renderer, 0xFF*lightshade[0], 0xFF*lightshade[1], 0xFF*lightshade[2], 0xFF );
 
         bool quit = false;
         SDL_Event e;
@@ -2877,78 +3095,16 @@ int main(int argc, char **argv)
         mainwordwriter.makeletters();
         mainplayer.makecar();
 
-        bool started = false;
-        gettrack(-1);
-
-        double mainmenucarspeed = 8;
-        maincamera.rotate(-0.7 , -0.2);
-
-        while (!started){// start menu stuff
-            while ( SDL_PollEvent( &e ) != 0 ){ //basic event thing so can quit
-                if( e.type == SDL_QUIT ){
-                    started = true;
-                    quit = true;
-                }
-                else if( e.type == SDL_KEYDOWN ){
-                    if (e.key.keysym.sym == SDLK_ESCAPE){
-                    started = true;
-                    quit = true;
-                    }
-                }
-            }
-
-            // get key input area
-            const Uint8* currentKeyStates = SDL_GetKeyboardState( NULL );
-
-            if( currentKeyStates[ SDL_SCANCODE_SPACE ] ){
-                std::cout << "START\n";
-                started = true;
-            }
-
-            
-
-            // all the main physics
-            if (mainplayer.selfpos[2] > 0){
-                mainplayer.selfpos[2] = -1536;
-            }
-            mainplayer.relmove(0 , 0 , mainmenucarspeed);
-            mainplayer.move();
-
-            SDL_SetRenderDrawColor( renderer, red, green, blue, 0xFF );
-            SDL_FillRect( screenSurface, NULL, SDL_MapRGB (screenSurface->format,red,green,blue )); // set background
-
-
-            SDL_RenderClear( renderer ); // start rendering objects
-            mainbuffer.newframe();
-
-
-            renderground();
-
-
-            mainplayer.selfrender();
-            std::cout << "carpos " << mainplayer.selfpos[0] << " " << mainplayer.selfpos[1] << " " << mainplayer.selfpos[2] << "\n";
-            std::cout << "carpos " << mainplayer.pointing[0] << " " << mainplayer.pointing[1] << " " << mainplayer.pointing[2] << "\n";
-
-            std::string hellostring = "racecar";
-            SDL_SetRenderDrawColor(renderer ,0x00 ,0x00 ,0x00 ,0xff);
-            mainwordwriter.writechars(-dispwidth/2+32,128,64,hellostring,4);
-            std::string numstring = "space to continue";
-            mainwordwriter.writechars(-dispwidth/2+256 , -128 , 32, numstring,2);
-
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-            SDL_RenderPresent( renderer ); //update renderer ??
-            SDL_Delay(1000/60);
-
+        if (startscreen()){ // the title screen
+            quit = true;
         }
-
 
 
         gettrack(0);
 
-        //started = false;
+        bool started = false;//true;
+        bool finished = false;
 
-        mainplayer.rotate(0.7,-0.1);// also undo previous camangle
-        mainplayer.update();
 
 
         while (!quit) { //main loop
@@ -3017,7 +3173,7 @@ int main(int argc, char **argv)
             }
 
 
-            SDL_SetRenderDrawColor( renderer, red, green, blue, 0xFF );
+            SDL_SetRenderDrawColor( renderer, red*lightshade[0], green*lightshade[1], blue*lightshade[2], 0xFF );
             SDL_FillRect( screenSurface, NULL, SDL_MapRGB (screenSurface->format,red,green,blue )); // set background
 
 
@@ -3089,16 +3245,23 @@ int main(int argc, char **argv)
 
 
                 std::cout << totalracetimestring << " HUD \n";
+
+                
             }
 
+            if (mainplayer.laptimes.size() == mainplayer.numlaps && !finished){// finished race only on first detection
+                std::string finishedstring = "finished";
+                finished = true;
+                SDL_SetRenderDrawColor(renderer ,0x00 ,0x00 ,0x00 ,0xff);
+                mainwordwriter.writechars(0 , 0 , 32, finishedstring,2);
 
+                if (finishedrace()){
+                    quit = true;
+                }
 
+            }
 
-
-            mainplayer.startrace();// used to work out time per sec
-
-
-            
+            //mainplayer.startrace();// used to work out time per sec
 
             
             
@@ -3112,7 +3275,7 @@ int main(int argc, char **argv)
 
 
 
-            }
+        }
     }
 
     shutdown();
