@@ -347,8 +347,8 @@ class buffer{// a z buffer for giving polygons
             newpolygon.points = polygon;
             double distz = 0;
             for (int i = 0; i < polygon.size(); i++){
-                if (polygon[i].pos[2] > distz){
-                    distz = polygon[i].pos[2];
+                if (sqrt(polygon[i].pos[0]*polygon[i].pos[0]+polygon[i].pos[1]*polygon[i].pos[1]+polygon[i].pos[2]*polygon[i].pos[2]) > distz){
+                    distz = sqrt(polygon[i].pos[0]*polygon[i].pos[0]+polygon[i].pos[1]*polygon[i].pos[1]+polygon[i].pos[2]*polygon[i].pos[2]);
                 }
                 //distz = distz + polygon[i].pos[2];// ave point
             }
@@ -1762,7 +1762,7 @@ class object{ // a thing which will be show contains points and connections and 
         }
 };
 
-
+std::vector<object> displayobjects;
 
 
 class player{
@@ -1856,8 +1856,8 @@ class player{
             playercar.points.push_back(carpoint);// back right
 
             carpoint.pos[0] = 0;
-            carpoint.pos[1] = -32;
-            carpoint.pos[2] = -32;
+            carpoint.pos[1] = -16;
+            carpoint.pos[2] = -48;
 
             playercar.points.push_back(carpoint);// top
 
@@ -1909,7 +1909,7 @@ class player{
 
                 
             }
-            maincamera.move(changevect[0],changevect[1],changevect[2]);
+            maincamera.move(changevect[0],changevect[1]-32,changevect[2]);
 
 
             
@@ -2404,8 +2404,10 @@ void gettrack(int num){
 
     if (num == 0){
 
+        displayobjects[0].center[2] = -2048;
+
         mainplayer.selfpos[0] = 0;
-        mainplayer.selfpos[2] = -2048;
+        mainplayer.selfpos[2] = -2048+256;
         mainplayer.rotate(M_PI,0);
         mainplayer.totalnumcheckpoints = 9;
         mainplayer.numlaps = 3;
@@ -2974,7 +2976,7 @@ bool startscreen(){
         mainwordwriter.writechars(-dispwidth/2+256 , -128 , 32, numstring,2);
 
         SDL_RenderPresent( renderer ); //update renderer ??
-        //SDL_Delay(1000/60);
+        SDL_Delay(1000/60);
 
     }
 
@@ -3101,6 +3103,7 @@ bool finishedrace(){
 
 
         SDL_RenderPresent( renderer ); //update renderer ??
+        SDL_Delay(1000/60);
 
     }
 
@@ -3165,6 +3168,150 @@ int main(int argc, char **argv)
 
         mainwordwriter.makeletters();
         mainplayer.makecar();
+
+        point objectpoint;
+        object racestartobject;
+
+        objectpoint.pos[0] = -256;
+        objectpoint.pos[1] = 0;
+        objectpoint.pos[2] = -16;
+        racestartobject.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = -256;
+        objectpoint.pos[1] = 0;
+        objectpoint.pos[2] = 16;
+        racestartobject.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = -256-16;
+        objectpoint.pos[1] = 0;
+        objectpoint.pos[2] = -16;
+        racestartobject.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = -256-16;
+        objectpoint.pos[1] = 0;
+        objectpoint.pos[2] = 16;
+        racestartobject.points.push_back(objectpoint);
+
+
+
+        objectpoint.pos[0] = 256;
+        objectpoint.pos[1] = 0;
+        objectpoint.pos[2] = -16;
+        racestartobject.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = 256;
+        objectpoint.pos[1] = 0;
+        objectpoint.pos[2] = 16;
+        racestartobject.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = 256+16;
+        objectpoint.pos[1] = 0;
+        objectpoint.pos[2] = -16;
+        racestartobject.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = 256+16;
+        objectpoint.pos[1] = 0;
+        objectpoint.pos[2] = 16;
+        racestartobject.points.push_back(objectpoint);
+
+
+
+
+        objectpoint.pos[0] = -256;
+        objectpoint.pos[1] = -256;
+        objectpoint.pos[2] = -16;
+        racestartobject.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = -256;
+        objectpoint.pos[1] = -256;
+        objectpoint.pos[2] = 16;
+        racestartobject.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = -256-16;
+        objectpoint.pos[1] = -256-32;
+        objectpoint.pos[2] = -16;
+        racestartobject.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = -256-16;
+        objectpoint.pos[1] = -256-32;
+        objectpoint.pos[2] = 16;
+        racestartobject.points.push_back(objectpoint);
+
+
+
+        objectpoint.pos[0] = 256;
+        objectpoint.pos[1] = -256;
+        objectpoint.pos[2] = -16;
+        racestartobject.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = 256;
+        objectpoint.pos[1] = -256;
+        objectpoint.pos[2] = 16;
+        racestartobject.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = 256+16;
+        objectpoint.pos[1] = -256-32;
+        objectpoint.pos[2] = -16;
+        racestartobject.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = 256+16;
+        objectpoint.pos[1] = -256-32;
+        objectpoint.pos[2] = 16;
+        racestartobject.points.push_back(objectpoint);
+
+        int black[3] = {0,0,0};
+        int white[3] = {255,255,255};
+
+
+        //+1 for back  +2 for outside +4 for side +8 for top
+
+
+        face startface1(racestartobject.points, {0, 2, 10, 8}, black);
+        racestartobject.faces.push_back(startface1);
+
+        face startface2(racestartobject.points, {1, 3, 11, 9}, black);
+        racestartobject.faces.push_back(startface2);
+
+        face startface3(racestartobject.points, {2, 3, 11, 10}, black);
+        racestartobject.faces.push_back(startface3);
+
+        face startface4(racestartobject.points, {0, 1, 9, 8}, black);
+        startface4.setinsideout(true);
+        racestartobject.faces.push_back(startface4);
+
+
+        face startface5(racestartobject.points, {4, 6, 14, 12}, black);
+        racestartobject.faces.push_back(startface5);
+
+        face startface6(racestartobject.points, {5, 7, 15, 13}, black);
+        racestartobject.faces.push_back(startface6);
+
+        face startface7(racestartobject.points, {6, 7, 15, 14}, black);
+        racestartobject.faces.push_back(startface7);
+
+        face startface8(racestartobject.points, {4, 5, 13, 12}, black);
+        startface8.setinsideout(true);
+        racestartobject.faces.push_back(startface8);
+
+
+        face startface9(racestartobject.points, {8, 9, 13, 12}, white);
+        startface9.setinsideout(true);
+        racestartobject.faces.push_back(startface9);
+
+        face startface10(racestartobject.points, {10, 11, 15, 14}, white);
+        racestartobject.faces.push_back(startface10);
+
+        face startface11(racestartobject.points, {8, 10, 14, 12}, white);
+        racestartobject.faces.push_back(startface11);
+
+        face startface12(racestartobject.points, {9, 11, 15, 13}, white);
+        racestartobject.faces.push_back(startface12);
+
+
+
+        displayobjects.push_back(racestartobject);
+        
+
 
         if (startscreen()){ // the title screen
             quit = true;
@@ -3257,6 +3404,10 @@ int main(int argc, char **argv)
 
             mainplayer.selfrender();
 
+            for (int i = 0; i < displayobjects.size(); i++){
+                displayobjects[i].objectrender();
+            }
+
             mainbuffer.showlisted();
             
 
@@ -3344,7 +3495,7 @@ int main(int argc, char **argv)
             SDL_RenderDrawPoint(renderer, dispwidth / 2, dispheight/2);
 
             SDL_RenderPresent( renderer ); //update renderer ??
-            //SDL_Delay(1000/60);
+            SDL_Delay(1000/60);
 
 
 
