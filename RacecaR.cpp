@@ -164,6 +164,174 @@ bool isinpoly(std::vector<point> polygon, point querypoint){
 }
 
 
+class buffer{// a z buffer for giving polygons
+    public:
+        //double* zvals;
+        std::vector<double> zvals;
+        double a;// used for geting depth of current polygon
+        double b;
+        double c;
+        double d;
+
+
+        void newframe(){
+            zvals.clear();
+            zvals.resize(dispheight * dispwidth);
+        }
+
+        void getequation(std::vector<point> polygon){
+            int polylen = polygon.size();
+
+            //use real space points as this must not get warped
+            //std::cout << "CAMERA equation \n";
+            point realpoints[polygon.size()];
+            for (int i = 0; i < polygon.size(); i++){
+                realpoints[i].pos[0] = polygon[i].pos[0]*polygon[i].pos[2]/dispdist;
+                realpoints[i].pos[1] = polygon[i].pos[1]*polygon[i].pos[2]/dispdist;
+                realpoints[i].pos[2] = polygon[i].pos[2];
+                //std::cout << "CAMERA equation " << realpoints[i].pos[0] << " " << realpoints[i].pos[1] << " " << realpoints[i].pos[2] << "\n";
+            }
+
+            double normal[3];
+            double vect1[3];
+            double vect2[3];
+            for (int i = 0;i < 3;i++){
+                vect1[i] = (realpoints[1].pos[i]
+                        -realpoints[0].pos[i]); // get the diff between 0 and 1 points as vect
+                vect2[i] = (realpoints[2].pos[i]
+                        -realpoints[0].pos[i]); // get the diff between 0 and 2 points as vect
+            }
+            normal[0] = vect1[1]*vect2[2]-vect1[2]*vect2[1];
+            normal[1] = vect1[2]*vect2[0]-vect1[0]*vect2[2];
+            normal[2] = vect1[0]*vect2[1]-vect1[1]*vect2[0];
+
+            double normlen = sqrt(normal[0]*normal[0]+normal[1]*normal[1]+normal[2]*normal[2]);
+
+            a = normal[0] / normlen;
+            b = normal[1] / normlen;
+            c = normal[2] / normlen;
+            d = -(a*realpoints[0].pos[0]+b*realpoints[0].pos[1]+c*realpoints[0].pos[2]);
+
+            //std::cout << "CAMERA equation " << a << " " << b << " " << c << " " << d << "\n";
+
+            /*for (int i = 0; i < polygon.size(); i++){
+                std::cout << "CAMERA equation " << getzat(polygon[i].pos[0],polygon[i].pos[1]) << " " << polygon[i].pos[2] << "\n";
+            }*/
+            //ax+by+cz+d = 0????
+
+        }
+
+        double getzat(double x,double y){
+            /*//ax+by+cz+d = 0????
+            //cz = -d-a*x-b*y;
+            double z = (-d-(a*x)-(b*y))/c;*/ // screen space version
+
+            //std::cout << "CAMERA equation" << a << " " << b << " " << c << " " << d << "\n";
+
+            //ax+by+cz+d = 0 plane
+            //x = r + qu  y = s + qv  z = t + qw line         r s and t are all 0 as start at origin
+            //x = qu  y = qv  z = qw                    we are working out what q is so we can find qw which is z value
+
+            // as z is const and x and y is given u is given x   v is given y    and z is dispdist    this gives vector from origin to point on screen
+
+            // so substitute things in q*a*(given x) + q*b*(given y) + q*c*(dispdist) + d = 0
+            //factor out q             q*(a*(given x) + b*(given y) + c*(dispdist)) + d = 0
+            //move d and divide by bracket     q = -d/(a*(given x) + b*(given y) + c*(dispdist))
+            //substitute q into z = qw to give     z = -d/(a*(given x) + b*(given y) + c*(dispdist))*dispdist
+
+
+            double z = -d/(a*(x) + b*(y) + c*(dispdist))*dispdist;
+            return z;
+        }
+
+
+        void fillpolybuffered(std::vector<point> polygon){
+            getequation(polygon);
+            int miny = dispheight;
+            int maxy = 0;
+            int minx = dispwidth;
+            int maxx = 0;
+            for (int i = 0;i < polygon.size();i++){
+                if (polygon[i].pos[1] < miny){
+                    miny = polygon[i].pos[1];
+                }
+                if (polygon[i].pos[1] > maxy){
+                    maxy = polygon[i].pos[1];
+                }
+                if (polygon[i].pos[0] < minx){
+                    minx = polygon[i].pos[0];
+                }
+                if (polygon[i].pos[0] > maxx){
+                    maxx = polygon[i].pos[0];
+                }
+            }
+
+            for (int i = miny;i < maxy;i++){
+                std::vector<int> intersections;
+
+                
+                for (int j = 0; j < polygon.size();j++){
+                    int otherpoint = (j+1)%polygon.size();
+                    if ((polygon[j].pos[1] < i && polygon[otherpoint].pos[1] > i) 
+                        || (polygon[j].pos[1] > i && polygon[otherpoint].pos[1] < i)){// if there is an intersection
+
+                        if (abs(polygon[j].pos[1]-polygon[otherpoint].pos[1]) < 1){// almost straight up/ down
+                            intersections.push_back(polygon[j].pos[0]);
+                        }
+                        else{
+                            double m = (polygon[j].pos[0]-polygon[otherpoint].pos[0])/(polygon[j].pos[1]-polygon[otherpoint].pos[1]);
+                            double intersectpoint = polygon[j].pos[0]+m*(i-polygon[j].pos[1]);
+                            intersections.push_back(intersectpoint);
+                        }
+                        
+                    }
+                }
+
+                
+                bool parity = false;
+                int intersectionssize = intersections.size();
+                int currentpoint = -dispwidth/2-25;
+                if (intersectionssize > 1){
+                    for (int j = 0; j < intersections.size();j++){
+                        int nextpoint = dispwidth/2+25;
+                        for (int k = 0; k < intersections.size();k++){
+                            if (intersections[k] < nextpoint && intersections[k] > currentpoint){
+                                nextpoint = intersections[k];
+                            }
+                            
+                        }
+                        if (parity && nextpoint != dispwidth/2+25){// && j+1 != intersections.size()){
+                            int rightpoint = nextpoint;
+                            int leftpoint = currentpoint;
+                            for (int k = leftpoint;k <= rightpoint; k++){
+                                double pixeldepth = getzat(k,i);
+                                double currentval = zvals[(i+dispheight/2)*dispwidth + k+dispwidth/2];
+                                if (pixeldepth < currentval || currentval == 0){
+                                    //SDL_SetRenderDrawColor(renderer , (int)pixeldepth%256 , pixeldepth , pixeldepth ,255);
+                                    zvals[(i+dispheight/2)*dispwidth + k+dispwidth/2] = pixeldepth;
+                                    SDL_RenderDrawPoint(renderer, k+dispwidth/2,i+dispheight/2);
+                                }
+                            }
+                            //SDL_RenderDrawLine(renderer,leftpoint+dispwidth/2,i+dispheight/2,rightpoint+dispwidth/2,i+dispheight/2);
+                        }
+
+                        currentpoint = nextpoint;
+                        parity = !parity;
+
+                    }
+                }
+            }
+        }
+
+
+};
+
+buffer mainbuffer;
+
+
+
+
+
 class camera{
     public:
         double selfpos[3];
@@ -686,13 +854,13 @@ class wordwriter{
             two.addline(-0.5,-1 , 0.5,-1);
 
             letter three;//3
-            three.addline(-0.5,0.9 , 0.4,1);
-            three.addline(-0.2,0 , 0.4,0);
-            three.addline(-0.5,-0.9 , 0.4,-1);
-            three.addline(0.4,1 , 0.5,0.5);
-            three.addline(0.5,0.5 , 0.4,0);
-            three.addline(0.4,-1 , 0.5,-0.5);
-            three.addline(0.5,-0.5 , 0.4,0);
+            three.addline(-0.5,0.9 , 0.3,1);
+            three.addline(-0.2,0 , 0.3,0);
+            three.addline(-0.5,-0.9 , 0.3,-1);
+            three.addline(0.3,1 , 0.5,0.5);
+            three.addline(0.5,0.5 , 0.3,0);
+            three.addline(0.3,-1 , 0.5,-0.5);
+            three.addline(0.5,-0.5 , 0.3,0);
 
             letter four;//4
             four.addline(0.5,-0.2 , -0.5,-0.2);
@@ -702,10 +870,10 @@ class wordwriter{
             letter five;//5
             five.addline(0.5,1 , -0.5,1);
             five.addline(-0.5,1 , -0.5,0);
-            five.addline(-0.5,0 , 0.4,0.1);
-            five.addline(0.4,0.1 , 0.5,-0.2);
-            five.addline(0.5,-0.2 , 0.4,-1);
-            five.addline(0.4,-1 , -0.5,-0.9);
+            five.addline(-0.5,0 , 0.3,0.1);
+            five.addline(0.3,0.1 , 0.5,-0.2);
+            five.addline(0.5,-0.2 , 0.3,-1);
+            five.addline(0.3,-1 , -0.5,-0.9);
 
             letter six;//6
             six.addline(0.5,0.8 , 0,1);
@@ -1083,8 +1251,8 @@ class road{
 
                 maincamera.preppolygon(newpolygon,4);
 
-                if (true){
-                    fillpoly(newpolygon);
+                if (newpolygon.size() != 0){
+                    mainbuffer.fillpolybuffered(newpolygon);
                 }
                 
 
@@ -2751,6 +2919,7 @@ int main(int argc, char **argv)
 
 
             SDL_RenderClear( renderer ); // start rendering objects
+            mainbuffer.newframe();
 
 
             renderground();
@@ -2776,7 +2945,7 @@ int main(int argc, char **argv)
 
         gettrack(0);
 
-        started = false;
+        //started = false;
 
         mainplayer.rotate(0.7,-0.1);// also undo previous camangle
         mainplayer.update();
@@ -2853,6 +3022,7 @@ int main(int argc, char **argv)
 
 
             SDL_RenderClear( renderer ); // start rendering objects
+            mainbuffer.newframe();
 
 
             renderground();
@@ -2925,7 +3095,7 @@ int main(int argc, char **argv)
 
 
 
-            //mainplayer.startrace();// used to work out time per sec
+            mainplayer.startrace();// used to work out time per sec
 
 
             
@@ -2937,7 +3107,7 @@ int main(int argc, char **argv)
             SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth / 2, mainplayer.selfpos[2]*scaler+dispheight/2);
             SDL_RenderDrawPoint(renderer, dispwidth / 2, dispheight/2);
             SDL_RenderPresent( renderer ); //update renderer ??
-            SDL_Delay(1000/60);
+            //SDL_Delay(1000/60);
 
 
 
