@@ -1778,6 +1778,7 @@ class player{
         double momentum[3];
         double revspeed;
         double maxspeed;
+        double rotspeed;
 
         double pointing[3];
         double carup[3];
@@ -1820,6 +1821,8 @@ class player{
             momentum[0] = 0;
             momentum[1] = 0;
             momentum[2] = 0;
+
+            rotspeed = 0;
 
             revspeed = -camspeed/2;
             maxspeed = camspeed;
@@ -1879,9 +1882,6 @@ class player{
         void relmove(double x,double y,double z){// relative to player
             needtomove[1] = needtomove[1] + y;// height change not depend on the direction pointing
 
-            /*needtomove[0] = needtomove[0] + x*cos(maincamera.xangle)-z*sin(maincamera.xangle);
-            needtomove[2] = needtomove[2] + x*sin(maincamera.xangle)+z*cos(maincamera.xangle);*/
-
             needtomove[0] = needtomove[0] + x*pointing[2]+z*pointing[0];
             needtomove[2] = needtomove[2] + x*pointing[0]+z*pointing[2];
         }
@@ -1918,7 +1918,48 @@ class player{
 
         }
 
+        void turnrotate(double x, double y){
+
+            if (x == 0){
+                rotspeed = rotspeed *0.9;
+            }
+            else if (x > 0){
+                rotspeed = rotspeed + 0.1;
+            }
+            else if (x < 0){
+                rotspeed = rotspeed + 0.1;
+            }
+
+            std::cout << "rotspeed " << rotspeed << "\n";
+
+            maincamera.rotate(x*abs(rotspeed) , y);
+
+            double changex = maincamera.xangle - playeranglex;
+            
+
+            playeranglex = maincamera.xangle;
+            
+
+            pointing[0] = maincamera.pointing[0];
+            pointing[2] = maincamera.pointing[2];
+
+            double pointinglen = sqrt(pointing[0]*pointing[0]+pointing[2]*pointing[2]);
+
+            pointing[0] = pointing[0]/pointinglen;
+            pointing[2] = pointing[2]/pointinglen;
+            
+
+
+            //std::cout << "pointing" << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
+
+
+
+        }
+
         void rotate(double x, double y){
+
+            
+            
 
             maincamera.rotate(x , y);
 
@@ -1995,6 +2036,11 @@ class player{
             if (veldotforward < 0){
                 speed = -speed;
             }
+
+            frictionco = (frictionco+rotspeed/600);
+
+
+
             std::cout << speed << " speed\n";
             if (speed == 0){}
             else if (speed > 0){ // speed is always pos or 0 ignoring the direction
@@ -2307,7 +2353,7 @@ class player{
 
             move();
 
-            rotate(0,0);
+            turnrotate(0,0);// used to reduce turn speed and update vars
 
             correctcarobject();
 
@@ -3021,7 +3067,7 @@ bool startscreen(){
         mainwordwriter.writechars(-dispwidth/2+256 , -128 , 32, numstring,2);
 
         SDL_RenderPresent( renderer ); //update renderer ??
-        SDL_Delay(1000/60);
+        //SDL_Delay(1000/60);
 
     }
 
@@ -3159,7 +3205,7 @@ bool finishedrace(){
 
 
         SDL_RenderPresent( renderer ); //update renderer ??
-        SDL_Delay(1000/60);
+        //SDL_Delay(1000/60);
 
     }
 
@@ -3496,7 +3542,7 @@ int main(int argc, char **argv)
 
         gettrack(0);
 
-        bool started = false;//true;
+        bool started = true;//false;
         bool finished = false;
 
 
@@ -3538,10 +3584,10 @@ int main(int argc, char **argv)
 
             if( currentKeyStates[ SDL_SCANCODE_LEFT ] ){
                 std::cout << "LEFT";
-                mainplayer.rotate(camrotspeed,0);}
+                mainplayer.turnrotate(camrotspeed,0);}
             if( currentKeyStates[ SDL_SCANCODE_RIGHT ] ){
                 std::cout << "RIGHT";
-                mainplayer.rotate(-camrotspeed,0);}
+                mainplayer.turnrotate(-camrotspeed,0);}
             if( currentKeyStates[ SDL_SCANCODE_DOWN ] ){
                 std::cout << "DOWN";
                 mainplayer.rotate(0,-camrotspeed);}
@@ -3666,7 +3712,7 @@ int main(int argc, char **argv)
 
             }
 
-            //mainplayer.startrace();// used to work out time per sec
+            mainplayer.startrace();// used to work out time per sec
 
             double length = 2048;
             double scaler = 128/length;
@@ -3677,7 +3723,7 @@ int main(int argc, char **argv)
             SDL_RenderDrawPoint(renderer, dispwidth / 2, dispheight/2);
 
             SDL_RenderPresent( renderer ); //update renderer ??
-            SDL_Delay(1000/60);
+            //SDL_Delay(1000/60);
 
 
 
