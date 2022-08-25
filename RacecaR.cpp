@@ -1580,7 +1580,7 @@ class face{ // a list of points in a order
 
                 
 
-                double brightness = 0.5-pointdotnorm(lightpos,center)/2;
+                double brightness = 0.5-pointdotnorm(lightpos,center)/3;
                 std::cout << brightness << " brightness\n";
 
                 SDL_SetRenderDrawColor(renderer, colour[0]*brightness*lightshade[0], colour[1]*brightness*lightshade[1]
@@ -1763,6 +1763,8 @@ class object{ // a thing which will be show contains points and connections and 
 };
 
 std::vector<object> displayobjects;
+object treetemplate;
+std::vector<point> treeobjlocations;
 
 
 class player{
@@ -2362,6 +2364,35 @@ void renderground(){
 }
 
 
+void gettrees(){
+    treeobjlocations.clear();
+    srand(123);
+    point treeloc;
+        
+    for (int i = 0; i < 200; i++){
+        double x = rand()/100000-RAND_MAX/200000;
+        double z = rand()/100000-RAND_MAX/200000;
+
+        std::cout << "trees " << x << " " << z << "\n";
+
+        treeloc.pos[0] = x;
+        treeloc.pos[1] = 0;
+        treeloc.pos[2] = z;
+
+        bool ontrack = false;
+        double treepos[3] = {x,0,z};
+        for (int j = 0; j < maintrack.size(); j++){
+            if (maintrack[j].isontrack(treepos)){
+                ontrack = true;
+            }
+        }
+        if (!ontrack){
+            treeobjlocations.push_back(treeloc);
+        }
+    }
+}
+
+
 void gettrack(int num){
 
     maintrack.clear();
@@ -2373,24 +2404,24 @@ void gettrack(int num){
 
     if (num == -1){// start screen
         mainplayer.selfpos[0] = 0;
-        mainplayer.selfpos[2] = -1536;
+        mainplayer.selfpos[2] = -7680;
         mainplayer.rotate(0,0);
         mainplayer.totalnumcheckpoints = 1;
         mainplayer.numlaps = 0;
 
-        double roadlength = 4096;
+        double roadlength = 16384;
         double roadspacing = 64;
         double roadwidth = 256;
         double roadid = 0;
 
         startpoint.pos[0] = 0;
         startpoint.pos[1] = 0;
-        startpoint.pos[2] = -2048;
+        startpoint.pos[2] = -8192;
         startpoint.pos[3] = 0;
 
         endpoint.pos[0] = 0;
         endpoint.pos[1] = 0;
-        endpoint.pos[2] = 2048;
+        endpoint.pos[2] = 8192;
         endpoint.pos[3] = 0;
 
         roadpoints.clear();
@@ -2903,6 +2934,12 @@ void gettrack(int num){
         road roadsegment5(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment5);
     }
+
+    gettrees();
+
+
+
+
 }
 
 
@@ -2945,8 +2982,8 @@ bool startscreen(){
         
 
         // all the main physics
-        if (mainplayer.selfpos[2] > 0){
-            mainplayer.selfpos[2] = -1536;
+        if (mainplayer.selfpos[2] > 6144){
+            mainplayer.selfpos[2] = -7680;
         }
         mainplayer.relmove(0 , 0 , mainmenucarspeed);
         mainplayer.move();
@@ -2963,8 +3000,16 @@ bool startscreen(){
 
 
         mainplayer.selfrender();
-        std::cout << "carpos " << mainplayer.selfpos[0] << " " << mainplayer.selfpos[1] << " " << mainplayer.selfpos[2] << "\n";
-        std::cout << "carpos " << mainplayer.pointing[0] << " " << mainplayer.pointing[1] << " " << mainplayer.pointing[2] << "\n";
+        for (int i = 0; i < displayobjects.size(); i++){// all one time objects
+            displayobjects[i].objectrender();
+        }
+
+        for (int i = 0; i < treeobjlocations.size(); i++){
+            treetemplate.center[0] = treeobjlocations[i].pos[0];
+            treetemplate.center[1] = treeobjlocations[i].pos[1];
+            treetemplate.center[2] = treeobjlocations[i].pos[2];
+            treetemplate.objectrender();
+        }
 
         mainbuffer.showlisted();
         
@@ -2980,7 +3025,7 @@ bool startscreen(){
 
     }
 
-    mainplayer.rotate(0.7,-0.1);// also undo previous camangle
+    mainplayer.rotate(0.7,-0.05);// also undo previous camangle
     mainplayer.update();
 
     return false;
@@ -3078,6 +3123,17 @@ bool finishedrace(){
 
 
         renderground();
+
+        for (int i = 0; i < displayobjects.size(); i++){// all one time objects
+            displayobjects[i].objectrender();
+        }
+
+        for (int i = 0; i < treeobjlocations.size(); i++){
+            treetemplate.center[0] = treeobjlocations[i].pos[0];
+            treetemplate.center[1] = treeobjlocations[i].pos[1];
+            treetemplate.center[2] = treeobjlocations[i].pos[2];
+            treetemplate.objectrender();
+        }
 
 
         mainplayer.selfrender();
@@ -3218,44 +3274,44 @@ int main(int argc, char **argv)
 
 
         objectpoint.pos[0] = -256;
-        objectpoint.pos[1] = -256;
+        objectpoint.pos[1] = -192;
         objectpoint.pos[2] = -16;
         racestartobject.points.push_back(objectpoint);
 
         objectpoint.pos[0] = -256;
-        objectpoint.pos[1] = -256;
+        objectpoint.pos[1] = -192;
         objectpoint.pos[2] = 16;
         racestartobject.points.push_back(objectpoint);
 
         objectpoint.pos[0] = -256-16;
-        objectpoint.pos[1] = -256-32;
+        objectpoint.pos[1] = -192-32;
         objectpoint.pos[2] = -16;
         racestartobject.points.push_back(objectpoint);
 
         objectpoint.pos[0] = -256-16;
-        objectpoint.pos[1] = -256-32;
+        objectpoint.pos[1] = -192-32;
         objectpoint.pos[2] = 16;
         racestartobject.points.push_back(objectpoint);
 
 
 
         objectpoint.pos[0] = 256;
-        objectpoint.pos[1] = -256;
+        objectpoint.pos[1] = -192;
         objectpoint.pos[2] = -16;
         racestartobject.points.push_back(objectpoint);
 
         objectpoint.pos[0] = 256;
-        objectpoint.pos[1] = -256;
+        objectpoint.pos[1] = -192;
         objectpoint.pos[2] = 16;
         racestartobject.points.push_back(objectpoint);
 
         objectpoint.pos[0] = 256+16;
-        objectpoint.pos[1] = -256-32;
+        objectpoint.pos[1] = -192-32;
         objectpoint.pos[2] = -16;
         racestartobject.points.push_back(objectpoint);
 
         objectpoint.pos[0] = 256+16;
-        objectpoint.pos[1] = -256-32;
+        objectpoint.pos[1] = -192-32;
         objectpoint.pos[2] = 16;
         racestartobject.points.push_back(objectpoint);
 
@@ -3310,7 +3366,127 @@ int main(int argc, char **argv)
 
 
         displayobjects.push_back(racestartobject);
-        
+
+
+
+
+
+        objectpoint.pos[0] = 0;
+        objectpoint.pos[1] = 0;
+        objectpoint.pos[2] = 16;
+        treetemplate.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = sqrt(3)*16/2;
+        objectpoint.pos[1] = 0;
+        objectpoint.pos[2] = -16/2;
+        treetemplate.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = -sqrt(3)*16/2;
+        objectpoint.pos[1] = 0;
+        objectpoint.pos[2] = -16/2;
+        treetemplate.points.push_back(objectpoint);
+
+
+
+        objectpoint.pos[0] = 0;
+        objectpoint.pos[1] = -36;
+        objectpoint.pos[2] = 16;
+        treetemplate.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = sqrt(3)*16/2;
+        objectpoint.pos[1] = -36;
+        objectpoint.pos[2] = -16/2;
+        treetemplate.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = -sqrt(3)*16/2;
+        objectpoint.pos[1] = -36;
+        objectpoint.pos[2] = -16/2;
+        treetemplate.points.push_back(objectpoint);
+
+
+
+        objectpoint.pos[0] = 0;
+        objectpoint.pos[1] = -32;
+        objectpoint.pos[2] = 48;
+        treetemplate.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = sqrt(3)*48/2;
+        objectpoint.pos[1] = -32;
+        objectpoint.pos[2] = -48/2;
+        treetemplate.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = -sqrt(3)*48/2;
+        objectpoint.pos[1] = -32;
+        objectpoint.pos[2] = -48/2;
+        treetemplate.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = 0;
+        objectpoint.pos[1] = -80;
+        objectpoint.pos[2] = 0;
+        treetemplate.points.push_back(objectpoint);
+
+
+
+        objectpoint.pos[0] = 0;
+        objectpoint.pos[1] = -64;
+        objectpoint.pos[2] = 32;
+        treetemplate.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = sqrt(3)*32/2;
+        objectpoint.pos[1] = -64;
+        objectpoint.pos[2] = -32/2;
+        treetemplate.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = -sqrt(3)*32/2;
+        objectpoint.pos[1] = -64;
+        objectpoint.pos[2] = -32/2;
+        treetemplate.points.push_back(objectpoint);
+
+        objectpoint.pos[0] = 0;
+        objectpoint.pos[1] = -96;
+        objectpoint.pos[2] = 0;
+        treetemplate.points.push_back(objectpoint);
+
+        int brown[3] = {64,32,32};
+        int forestgreen[3] = {0,128,0};
+
+        face treeface1(treetemplate.points, {0,1,4,3} ,brown);
+        treetemplate.faces.push_back(treeface1);
+
+        face treeface2(treetemplate.points, {1,2,5,4} ,brown);
+        treetemplate.faces.push_back(treeface2);
+
+        face treeface3(treetemplate.points, {2,0,3,5} ,brown);
+        treetemplate.faces.push_back(treeface3);
+
+
+        face treeface4(treetemplate.points, {6,7,9} ,forestgreen);
+        treetemplate.faces.push_back(treeface4);
+
+        face treeface5(treetemplate.points, {7,8,9} ,forestgreen);
+        treetemplate.faces.push_back(treeface5);
+
+        face treeface6(treetemplate.points, {8,6,9} ,forestgreen);
+        treetemplate.faces.push_back(treeface6);
+
+
+        face treeface7(treetemplate.points, {10,11,13} ,forestgreen);
+        treetemplate.faces.push_back(treeface7);
+
+        face treeface8(treetemplate.points, {11,12,13} ,forestgreen);
+        treetemplate.faces.push_back(treeface8);
+
+        face treeface9(treetemplate.points, {12,10,13} ,forestgreen);
+        treetemplate.faces.push_back(treeface9);
+
+
+        point treeloc;
+        treeloc.pos[0] = 0;
+        treeloc.pos[1] = 0;
+        treeloc.pos[2] = 0;
+        treeobjlocations.push_back(treeloc);
+
+
 
 
         if (startscreen()){ // the title screen
@@ -3404,8 +3580,14 @@ int main(int argc, char **argv)
 
             mainplayer.selfrender();
 
-            for (int i = 0; i < displayobjects.size(); i++){
+            for (int i = 0; i < displayobjects.size(); i++){// all one time objects
                 displayobjects[i].objectrender();
+            }
+            for (int i = 0; i < treeobjlocations.size(); i++){
+                treetemplate.center[0] = treeobjlocations[i].pos[0];
+                treetemplate.center[1] = treeobjlocations[i].pos[1];
+                treetemplate.center[2] = treeobjlocations[i].pos[2];
+                treetemplate.objectrender();
             }
 
             mainbuffer.showlisted();
