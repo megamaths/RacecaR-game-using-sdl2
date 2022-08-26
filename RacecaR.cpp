@@ -3,6 +3,7 @@
 #include <cmath>
 #include <vector>
 #include <sys/time.h>
+#include <fstream>
 #define _USE_MATH_DEFINES
 
 const int dispwidth = 1080;
@@ -1793,6 +1794,7 @@ class player{
         std::vector<long long> laptimes;
         int numlaps;
 
+        int courseid;
 
         int currenttrackid;
         
@@ -1836,6 +1838,7 @@ class player{
             timestartrace = timelapstart;
 
 
+            courseid = -1;
             currenttrackid = -1;
             
         }
@@ -2440,6 +2443,8 @@ void gettrees(){
 
 
 void gettrack(int num){
+
+    mainplayer.courseid = num;
 
     maintrack.clear();
     hyperpoint startpoint;
@@ -3134,6 +3139,53 @@ bool finishedrace(){
     std::string totalracetimestring = "total " + mins + ":" + secs + "." + milsecs;
 
 
+
+
+    std::vector<std::string> contents;
+
+    std::fstream pbfiles;
+    pbfiles.open("RacecaR_pbs_file.txt",std::fstream::in);
+    //std::cout << pbfiles << " file\n";
+
+    std::string line;
+
+    while (getline(pbfiles,line)){
+        std::cout << line << " file\n";
+        contents.push_back(line);
+    }
+
+    pbfiles.close();
+
+    long pbtime = std::stoi(contents[mainplayer.courseid]);
+
+    mins = std::to_string((pbtime/1000000)/60);
+    secs = std::to_string((pbtime/1000000)%60);
+    milsecs = std::to_string((pbtime/1000)%1000);
+
+    secs = std::string((2-secs.length()),'0') +secs;
+    milsecs = std::string((3-milsecs.length()),'0') +milsecs;
+
+    std::string pbstring = "sys best " + mins + ":" + secs + "." + milsecs;
+
+    bool isnewpb;
+    pbfiles.open("RacecaR_pbs_file.txt",std::fstream::out | std::fstream::trunc);
+    for (int i = 0; i < contents.size(); i++){
+        std::cout << contents[i] << " file\n";
+        if (i == mainplayer.courseid && totalracetime < std::stoi(contents[i])){
+            pbfiles << totalracetime << "\n";
+            isnewpb = true;
+        }
+        else{
+            pbfiles << contents[i] << "\n";
+        }
+        
+    }
+
+    pbfiles.close();
+
+
+
+
     while (!quit){
         while ( SDL_PollEvent( &e ) != 0 ){ //basic event thing so can quit
             if( e.type == SDL_QUIT ){
@@ -3201,7 +3253,8 @@ bool finishedrace(){
             
         }
 
-        mainwordwriter.writechars(-256 , -256 , 48, totalracetimestring,4);
+        mainwordwriter.writechars(-256 , -160 , 48, totalracetimestring,4);
+        mainwordwriter.writechars(-256-48*3 , -288 , 48, pbstring, 4);
 
 
         SDL_RenderPresent( renderer ); //update renderer ??
@@ -3542,7 +3595,7 @@ int main(int argc, char **argv)
 
         gettrack(0);
 
-        bool started = true;//false;
+        bool started = false;//true;
         bool finished = false;
 
 
@@ -3712,7 +3765,7 @@ int main(int argc, char **argv)
 
             }
 
-            mainplayer.startrace();// used to work out time per sec
+            //mainplayer.startrace();// used to work out time per sec
 
             double length = 2048;
             double scaler = 128/length;
