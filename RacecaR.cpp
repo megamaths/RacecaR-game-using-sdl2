@@ -1772,8 +1772,6 @@ class player{
     public:
         double selfpos[3];
         double needtomove[3];
-        double playeranglex;
-        double playerangley;
         double playerroll;
 
         double momentum[3];
@@ -1816,8 +1814,6 @@ class player{
             carup[1] = -1;
             carup[2] = 0;
 
-            playeranglex = 0;
-            playerangley = 0;
             playerroll = 0;
 
             momentum[0] = 0;
@@ -1901,24 +1897,6 @@ class player{
             selfpos[1] = selfpos[1] + needtomove[1];
             selfpos[2] = selfpos[2] + needtomove[2];
 
-            double changevect[3];
-            for (int dimension = 0; dimension < 3;dimension++){
-                changevect[dimension] = selfpos[dimension] - maincamera.selfpos[dimension] - maincamera.pointing[dimension]*256;
-                
-                momentum[dimension] = needtomove[dimension];
-                
-                needtomove[dimension] = 0;
-                
-                playercar.center[dimension] = selfpos[dimension];
-                //std::cout << "car pos" << playercar.center[dimension] << "\n";
-
-                
-            }
-            maincamera.move(changevect[0],changevect[1]-32,changevect[2]);
-
-
-            
-
         }
 
         void turnrotate(double x, double y){
@@ -1935,16 +1913,14 @@ class player{
 
             std::cout << "rotspeed " << rotspeed << "\n";
 
-            maincamera.rotate(x*abs(rotspeed) , y);
+            double newx = -pointing[2]*sin(x*abs(rotspeed))+pointing[0]*cos(x*abs(rotspeed));
+            double newz = pointing[0]*sin(x*abs(rotspeed))+pointing[2]*cos(x*abs(rotspeed));
 
-            double changex = maincamera.xangle - playeranglex;
-            
+            //maincamera.rotate(x*abs(rotspeed) , y);
 
-            playeranglex = maincamera.xangle;
-            
 
-            pointing[0] = maincamera.pointing[0];
-            pointing[2] = maincamera.pointing[2];
+            pointing[0] = newx;
+            pointing[2] = newz;
 
             double pointinglen = sqrt(pointing[0]*pointing[0]+pointing[2]*pointing[2]);
 
@@ -1953,7 +1929,7 @@ class player{
             
 
 
-            //std::cout << "pointing" << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
+            std::cout << "pointing" << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
 
 
 
@@ -1964,25 +1940,24 @@ class player{
             
             
 
-            maincamera.rotate(x , y);
+            //maincamera.rotate(x , y);
 
-            double changex = maincamera.xangle - playeranglex;
+
+            //pointing[0] = maincamera.pointing[0];
+            //pointing[2] = maincamera.pointing[2];
+
+            double newx = -pointing[2]*sin(x)+pointing[0]*cos(x);
+            double newz = pointing[0]*sin(x)+pointing[2]*cos(x);
+
+
+            double pointinglen = sqrt(newx*newx+newz*newz);
+
+            pointing[0] = newx/pointinglen;
+            pointing[2] = newz/pointinglen;
             
 
-            playeranglex = maincamera.xangle;
-            
 
-            pointing[0] = maincamera.pointing[0];
-            pointing[2] = maincamera.pointing[2];
-
-            double pointinglen = sqrt(pointing[0]*pointing[0]+pointing[2]*pointing[2]);
-
-            pointing[0] = pointing[0]/pointinglen;
-            pointing[2] = pointing[2]/pointinglen;
-            
-
-
-            //std::cout << "pointing" << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
+            std::cout << "pointing" << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
 
 
 
@@ -1999,8 +1974,8 @@ class player{
 
             acceleration = acceleration * roadtypemodifier;
 
-            momentum[0] = momentum[0] - acceleration*sin(maincamera.xangle);//+x*cos(maincamera.xangle); // x is drift
-            momentum[2] = momentum[2] + acceleration*cos(maincamera.xangle);//+x*sin(maincamera.xangle);
+            momentum[0] = momentum[0] + acceleration*pointing[0];//sin(maincamera.xangle); // x is drift
+            momentum[2] = momentum[2] + acceleration*pointing[2];//cos(maincamera.xangle);
             //std::cout << momentum[0] << " " << momentum[1] << " " << momentum[2] << " momentum\n";
 
         }
@@ -2016,8 +1991,8 @@ class player{
 
             sideacceleration = sideacceleration * roadtypemodifier;
 
-            momentum[0] = momentum[0] + sideacceleration*cos(maincamera.xangle);
-            momentum[2] = momentum[2] + sideacceleration*sin(maincamera.xangle);
+            momentum[0] = momentum[0] + sideacceleration*pointing[2];//cos(maincamera.xangle);
+            momentum[2] = momentum[2] - sideacceleration*pointing[0];//sin(maincamera.xangle);
             //std::cout << momentum[0] << " " << momentum[1] << " " << momentum[2] << " momentum\n";
 
         }
@@ -2339,6 +2314,80 @@ class player{
         }
 
 
+        void correctcamerapos(){
+
+            double changevect[3];
+            for (int dimension = 0; dimension < 3;dimension++){
+                changevect[dimension] = selfpos[dimension] - maincamera.selfpos[dimension] - maincamera.pointing[dimension]*256;
+                
+                momentum[dimension] = needtomove[dimension];
+                
+                needtomove[dimension] = 0;
+                
+                playercar.center[dimension] = selfpos[dimension];
+                //std::cout << "car pos" << playercar.center[dimension] << "\n";
+                
+            }
+            maincamera.move(changevect[0],changevect[1]-32,changevect[2]);
+
+            std::cout << "camera pos" << maincamera.selfpos[0] << " " << maincamera.selfpos[1] << " " << maincamera.selfpos[2] << "\n";
+
+
+        }
+
+        void correctcamerapointing(){
+
+            double flatpointlength = sqrt(maincamera.pointing[0]*maincamera.pointing[0]+
+                                        maincamera.pointing[2]*maincamera.pointing[2]);// this is the length of the flatened to xz plane pointing so can scale up
+            double currentpointrot[3] = {-maincamera.pointing[2]/flatpointlength,0/*playercar.pointing[1] for reasons of flatness*/
+                                        ,maincamera.pointing[0]/flatpointlength}; // this is the playercar.pointing rotated pi/2
+            double rotpointdotwanted = 0;// is this rotated pointing forward or backward equivilent to is currentpointing left or right
+            rotpointdotwanted = rotpointdotwanted + currentpointrot[0]*pointing[0];// vert not matter
+            rotpointdotwanted = rotpointdotwanted + currentpointrot[2]*pointing[2];
+            
+            double currentpointdotwanted = 0;// is this so i can see if it is totaly backwards for my checks
+            currentpointdotwanted = currentpointdotwanted + maincamera.pointing[0]*pointing[0];
+            currentpointdotwanted = currentpointdotwanted + maincamera.pointing[2]*pointing[2];
+
+            double abslensdotandcurrent = (sqrt(maincamera.pointing[0]*maincamera.pointing[0]+maincamera.pointing[2]*maincamera.pointing[2])
+                                            *sqrt(pointing[0]*pointing[0]+pointing[2]*pointing[2]));
+            
+            
+            double changex=0;
+            if (abs(rotpointdotwanted) < 0.01){/*if pointing exactly on then it can cause error as it cant do acos(1) which is 0*/
+                if (currentpointdotwanted < 0){
+                    changex = M_PI;
+                }
+            }
+            else if (rotpointdotwanted > 0) {
+                changex = abs(acos(currentpointdotwanted/abslensdotandcurrent));
+            } else if (rotpointdotwanted < 0) {
+                changex = -abs(acos(currentpointdotwanted/abslensdotandcurrent));
+            }
+
+            
+            double startdot = 0;
+            for (int i = 0; i < 3;i++){
+                startdot = startdot + pointing[i]*playercar.pointing[i];
+            }
+
+            std::cout << "camera decisions" << abslensdotandcurrent << " " << currentpointdotwanted << " " << rotpointdotwanted << "\n";
+
+            std::cout << "camera start pointing" << maincamera.pointing[0] << " " << maincamera.pointing[1] << " " << maincamera.pointing[2] << "\n";
+
+            if (changex != 0){// yaw
+                maincamera.rotate(changex/3,0);
+
+                std::cout << changex << " camera yaw\n";
+            }
+
+
+            std::cout << "camera pointing" << maincamera.pointing[0] << " " << maincamera.pointing[1] << " " << maincamera.pointing[2] << "\n";
+
+
+        }
+
+
 
         void update(){
 
@@ -2355,9 +2404,12 @@ class player{
 
 
             move();
+            
 
             turnrotate(0,0);// used to reduce turn speed and update vars
 
+            correctcamerapos();
+            correctcamerapointing();
             correctcarobject();
 
             
@@ -2456,7 +2508,11 @@ void gettrack(int num){
     if (num == -1){// start screen
         mainplayer.selfpos[0] = 0;
         mainplayer.selfpos[2] = -7680;
-        mainplayer.rotate(0,0);
+
+        mainplayer.pointing[0] = 0;
+        mainplayer.pointing[1] = 0;
+        mainplayer.pointing[2] = 1;
+
         mainplayer.totalnumcheckpoints = 1;
         mainplayer.numlaps = 0;
 
@@ -2490,7 +2546,11 @@ void gettrack(int num){
 
         mainplayer.selfpos[0] = 0;
         mainplayer.selfpos[2] = -2048+256;
-        mainplayer.rotate(M_PI,0);
+        
+        mainplayer.pointing[0] = 0;
+        mainplayer.pointing[1] = 0;
+        mainplayer.pointing[2] = -1;
+
         mainplayer.totalnumcheckpoints = 9;
         mainplayer.numlaps = 3;
 
@@ -2785,8 +2845,14 @@ void gettrack(int num){
 
     if (num == 1){
         mainplayer.selfpos[0] = 3072;
+        mainplayer.selfpos[2] = 0;
+
         mainplayer.totalnumcheckpoints = 6;
         mainplayer.numlaps = 3;
+
+        mainplayer.pointing[0] = 0;
+        mainplayer.pointing[1] = 0;
+        mainplayer.pointing[2] = 1;
 
         //curve 1
         
@@ -3038,6 +3104,7 @@ bool startscreen(){
         }
         mainplayer.relmove(0 , 0 , mainmenucarspeed);
         mainplayer.move();
+        mainplayer.correctcamerapos();
 
         SDL_SetRenderDrawColor( renderer, red*lightshade[0], green*lightshade[1], blue*lightshade[2], 0xFF );
         SDL_FillRect( screenSurface, NULL, SDL_MapRGB (screenSurface->format,red,green,blue )); // set background
@@ -3265,6 +3332,8 @@ bool finishedrace(){
     lightshade[0] = 1;
     lightshade[1] = 1;
     lightshade[2] = 1;
+
+    gettrack(mainplayer.courseid+1);
 
     return false;
 
@@ -3622,12 +3691,12 @@ int main(int argc, char **argv)
             if( currentKeyStates[ SDL_SCANCODE_S ] ){
                 std::cout << "S";
                 mainplayer.accelerate(-1);}
-            if( currentKeyStates[ SDL_SCANCODE_A ] ){
+            /*if( currentKeyStates[ SDL_SCANCODE_A ] ){// strafe in car hard
                 std::cout << "A";
                 mainplayer.sideaccelerate(-0.5);}
             if( currentKeyStates[ SDL_SCANCODE_D ] ){
                 std::cout << "D";
-                mainplayer.sideaccelerate(0.5);}
+                mainplayer.sideaccelerate(0.5);}*/
             /*if( currentKeyStates[ SDL_SCANCODE_Q ] ){
                 std::cout << "Q";
                 mainplayer.relmove(0,-camspeed,0);}
@@ -3641,12 +3710,12 @@ int main(int argc, char **argv)
             if( currentKeyStates[ SDL_SCANCODE_RIGHT ] ){
                 std::cout << "RIGHT";
                 mainplayer.turnrotate(-camrotspeed,0);}
-            if( currentKeyStates[ SDL_SCANCODE_DOWN ] ){
+            /*if( currentKeyStates[ SDL_SCANCODE_DOWN ] ){
                 std::cout << "DOWN";
                 mainplayer.rotate(0,-camrotspeed);}
             if( currentKeyStates[ SDL_SCANCODE_UP ] ){
                 std::cout << "UP";
-                mainplayer.rotate(0,camrotspeed);}
+                mainplayer.rotate(0,camrotspeed);}*/
 
 
 
