@@ -2,6 +2,7 @@
 #include <SDL2/SDL.h>
 #include <cmath>
 #include <vector>
+#include <array>
 #include <sys/time.h>
 #include <fstream>
 #define _USE_MATH_DEFINES
@@ -33,7 +34,7 @@ struct point{
 };
 
 struct hyperpoint{
-    double pos[4];
+    std::array<double,4> pos;
 };
 
 
@@ -1131,7 +1132,13 @@ class road{
     public:
 
         std::vector<hyperpoint> points; // points will start by being linear interpolation but will swap for beizer curves
-                                        // the forth dimension is for banking 4d bezier
+                                        // the forth dimension is for banking 4d bezier 
+
+        hyperpoint startpoint;// defines hermite curve
+        hyperpoint endpoint;
+        hyperpoint starttangent;
+        hyperpoint endtangent;
+
         double length = 1;
         double spacing = 1;
         double width = 1;
@@ -1147,9 +1154,15 @@ class road{
             spacing = newspacing;
             width = newwidth;
             points.clear();
-            for (int i = 0; i < newpoints.size(); i++){
+
+            /*for (int i = 0; i < newpoints.size(); i++){
                 points.push_back(newpoints[i]);
-            }
+            }*/
+            startpoint = newpoints[0];
+            endpoint = newpoints[1];
+            starttangent = newpoints[2];
+            endtangent = newpoints[3];
+
             roadid = id;
 
             getoutsidepoints();
@@ -1158,7 +1171,25 @@ class road{
 
 
         hyperpoint getposofroad(double ratio){ // this will give position of the road at a given fraction through it 0 giving start and 1 end
-            std::vector<hyperpoint> laststagepoints;
+            double t0 = 1;
+            double t1 = ratio;
+            double t2 = ratio*ratio;
+            double t3 = ratio*ratio*ratio;
+
+
+            double v0 = 2*t3 - 3*t2 + 1;
+            double v1 = -2*t3 + 3*t2;
+            double v2 = t3 - 2*t2 + t1;
+            double v3 = t3 - t2;
+
+            hyperpoint returnpoint;
+            for (int i = 0; i < 4; i++){
+                returnpoint.pos[i] = v0*startpoint.pos[i] + v1*endpoint.pos[i] + v2*starttangent.pos[i] + v3*endtangent.pos[i];
+            }
+
+            return returnpoint;
+            
+            /*std::vector<hyperpoint> laststagepoints; // for beziers
             for (int i = 0;i < points.size()-1;i++){
                 std::vector<hyperpoint> newpoints;
                 if (i == 0){
@@ -1188,7 +1219,7 @@ class road{
                 }
             }
 
-            return laststagepoints[0];
+            return laststagepoints[0];*/
         
         }
 
@@ -1215,6 +1246,9 @@ class road{
                 double normlen = sqrt(normal.pos[0]*normal.pos[0]+normal.pos[2]*normal.pos[2]);
                 double banklen = sqrt(1-nextpoint.pos[3]*nextpoint.pos[3]);
 
+                std::cout << "normal " << normal.pos[0] << " " << normal.pos[1] << " " << normal.pos[2] << "\n";
+                
+
                 normal.pos[0] = width*normal.pos[0]/normlen*banklen;
                 normal.pos[1] = width*normlen*nextpoint.pos[3];
                 normal.pos[2] = width*normal.pos[2]/normlen*banklen;
@@ -1233,6 +1267,8 @@ class road{
                 rightpoints.push_back(nextrightpoint);
                 std::cout << "start track pos" << nextleftpoint.pos[0] << " " << nextleftpoint.pos[1] << " " << nextleftpoint.pos[2] << "\n";
                 std::cout << "start track pos" << nextrightpoint.pos[0] << " " << nextrightpoint.pos[1] << " " << nextrightpoint.pos[2] << "\n";
+                std::cout << "normal " << normal.pos[0] << " " << normal.pos[1] << " " << normal.pos[2] << "\n";
+                std::cout << "normal length " << normlen << "\n";
             }
         }
 
@@ -1243,9 +1279,13 @@ class road{
 
 
             point lastpoint;
-            lastpoint.pos[0] = points[0].pos[0];
+            /*lastpoint.pos[0] = points[0].pos[0];
             lastpoint.pos[1] = 0;
-            lastpoint.pos[2] = points[0].pos[2];
+            lastpoint.pos[2] = points[0].pos[2];*/ // old bezier method
+            lastpoint.pos[0] = startpoint.pos[0];
+            lastpoint.pos[1] = 0;
+            lastpoint.pos[2] = startpoint.pos[2];
+
             
 
             point startleftpoint = leftpoints[0];
@@ -1522,7 +1562,7 @@ class road{
 
 };
 
-std::vector<road> maintrack;
+std::vector<road*> maintrack;
 
 
 
@@ -1967,7 +2007,7 @@ class player{
 
             double roadtypemodifier = 1;
             for (int i = 0 ; i < maintrack.size(); i++){
-                if (maintrack[i].isontrack(selfpos)){
+                if (maintrack[i]->isontrack(selfpos)){
                     roadtypemodifier = 2;
                 }
             }
@@ -1984,7 +2024,7 @@ class player{
 
             double roadtypemodifier = 1;
             for (int i = 0 ; i < maintrack.size(); i++){
-                if (maintrack[i].isontrack(selfpos)){
+                if (maintrack[i]->isontrack(selfpos)){
                     roadtypemodifier = 2;
                 }
             }
@@ -2000,7 +2040,7 @@ class player{
         void speedcheck(){ // this works out friction and stuff on the car and slows it
             double frictionco = 0.001;
             for (int i = 0 ; i < maintrack.size(); i++){
-                if (maintrack[i].isontrack(selfpos)){
+                if (maintrack[i]->isontrack(selfpos)){
                     frictionco = 0.002;
                 }
             }
@@ -2186,12 +2226,12 @@ class player{
             double sideslope = 0;
 
             if (currenttrackid != -1){
-                if (maintrack[currenttrackid].isontrack(selfpos)){
-                    double height = maintrack[currenttrackid].trackheight(selfpos);
+                if (maintrack[currenttrackid]->isontrack(selfpos)){
+                    double height = maintrack[currenttrackid]->trackheight(selfpos);
                     selfpos[1] = height;
 
                     double differentpos[3] = {selfpos[0]+pointing[0],selfpos[1],selfpos[2]+pointing[2]};
-                    double differentheight = maintrack[currenttrackid].trackheight(differentpos);
+                    double differentheight = maintrack[currenttrackid]->trackheight(differentpos);
 
                     slope = (differentheight-height)/sqrt(pointing[0]*pointing[0]+pointing[2]*pointing[2]);
                     if (differentheight == -1024){
@@ -2207,7 +2247,7 @@ class player{
                     pointing[2] = pointing[2]/newlength;
 
                     double parallelpos[3] = {selfpos[0]+pointing[2],selfpos[1],selfpos[2]-pointing[0]};
-                    double parallelheight = maintrack[currenttrackid].trackheight(parallelpos);
+                    double parallelheight = maintrack[currenttrackid]->trackheight(parallelpos);
 
                     sideslope = (parallelheight-height)/sqrt(pointing[0]*pointing[0]+pointing[2]*pointing[2]);
                     if (parallelheight == -1024){
@@ -2242,11 +2282,11 @@ class player{
             currenttrackid = -1;
 
             for (int i = 0; i < maintrack.size(); i++){
-                if (maintrack[i].isontrack(selfpos)){
+                if (maintrack[i]->isontrack(selfpos)){
                     std::cout << "trackid posible" << i << "\n";
-                    if (abs(maintrack[i].trackheight(selfpos)-selfpos[1]) < minchange){
-                        minchange = abs(maintrack[i].trackheight(selfpos)-selfpos[1]);
-                        currenttrackid = maintrack[i].roadid;
+                    if (abs(maintrack[i]->trackheight(selfpos)-selfpos[1]) < minchange){
+                        minchange = abs(maintrack[i]->trackheight(selfpos)-selfpos[1]);
+                        currenttrackid = maintrack[i]->roadid;
                     }
                 }
             }
@@ -2256,7 +2296,7 @@ class player{
 
         void checkpointcheck(){
             if (currenttrackid != -1){
-                int checkpointid = maintrack[currenttrackid].isincheckpoint(selfpos);
+                int checkpointid = maintrack[currenttrackid]->isincheckpoint(selfpos);
                 if (checkpointid != -1){
                     bool haspassed = false;
                     for (int i = 0; i < checkpointspassed.size(); i++){
@@ -2434,10 +2474,10 @@ void renderground(){
     bool iscarontrack = false;
     bool carincheckpoint = false;
     for (int i = 0; i < maintrack.size(); i++){
-        if (maintrack[i].isontrack(mainplayer.selfpos)){
+        if (maintrack[i]->isontrack(mainplayer.selfpos)){
             iscarontrack = true;
         }
-        if (maintrack[i].isincheckpoint(mainplayer.selfpos) != -1){
+        if (maintrack[i]->isincheckpoint(mainplayer.selfpos) != -1){
             carincheckpoint = true;
         }
     }
@@ -2457,7 +2497,7 @@ void renderground(){
     for (int i = 0; i < maintrack.size(); i++){
         //if (visable){
         SDL_SetRenderDrawColor( renderer, 0x00, 0x00, 0x00, 0xFF );
-        maintrack[i].renderroad();
+        maintrack[i]->renderroad();
         
                 
 
@@ -2483,7 +2523,7 @@ void gettrees(){
         bool ontrack = false;
         double treepos[3] = {x,0,z};
         for (int j = 0; j < maintrack.size(); j++){
-            if (maintrack[j].isontrack(treepos)){
+            if (maintrack[j]->isontrack(treepos)){
                 ontrack = true;
             }
         }
@@ -2497,6 +2537,8 @@ void gettrees(){
 void gettrack(int num){
 
     mainplayer.courseid = num;
+    mainplayer.checkpointspassed.clear();
+    mainplayer.laptimes.clear();
 
     maintrack.clear();
     hyperpoint startpoint;
@@ -2504,7 +2546,10 @@ void gettrack(int num){
     hyperpoint midpoint2;
     hyperpoint endpoint;
     std::vector<hyperpoint> roadpoints;
-
+    
+    hyperpoint endtangent;
+    hyperpoint starttangent;
+    
     if (num == -1){// start screen
         mainplayer.selfpos[0] = 0;
         mainplayer.selfpos[2] = -7680;
@@ -2515,6 +2560,13 @@ void gettrack(int num){
 
         mainplayer.totalnumcheckpoints = 1;
         mainplayer.numlaps = 0;
+
+        displayobjects[0].center[0] = 0;//the finish area
+        displayobjects[0].center[1] = 0;
+        displayobjects[0].center[2] = -2048;
+
+
+
 
         double roadlength = 16384;
         double roadspacing = 64;
@@ -2531,11 +2583,23 @@ void gettrack(int num){
         endpoint.pos[2] = 8192;
         endpoint.pos[3] = 0;
 
+        endpoint.pos[0] = 0;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = 1;
+        endpoint.pos[3] = 0;
+
+        endpoint.pos[0] = 0;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = 1;
+        endpoint.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment0(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment0 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment0);
     }
 
@@ -2554,6 +2618,10 @@ void gettrack(int num){
         mainplayer.totalnumcheckpoints = 9;
         mainplayer.numlaps = 3;
 
+        displayobjects[0].center[0] = 0;//the finish area
+        displayobjects[0].center[1] = 0;
+        displayobjects[0].center[2] = -2048;
+
         //curve 1
         
         double roadlength = 2048;
@@ -2566,22 +2634,28 @@ void gettrack(int num){
         startpoint.pos[2] = -2048;
         startpoint.pos[3] = 0;
         
-        midpoint.pos[0] = 0;
-        midpoint.pos[1] = 0;
-        midpoint.pos[2] = -4096;
-        midpoint.pos[3] = 0;
-        
         endpoint.pos[0] = 2048;
         endpoint.pos[1] = 0;
         endpoint.pos[2] = -4096;
         endpoint.pos[3] = 0;
 
+        starttangent.pos[0] = 0;
+        starttangent.pos[1] = 0;
+        starttangent.pos[2] = -4096;
+        starttangent.pos[3] = 0;
+
+        endtangent.pos[0] = 4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment0(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment0 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment0);
 
 
@@ -2592,27 +2666,26 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 1;
         
-        startpoint.pos[0] = 2048;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = -4096;
-        startpoint.pos[3] = 0;
-        
-        midpoint.pos[0] = 4096;
-        midpoint.pos[1] = 0;
-        midpoint.pos[2] = -4096;
-        midpoint.pos[3] = 0;
-        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+
         endpoint.pos[0] = 4096;
         endpoint.pos[1] = 0;
         endpoint.pos[2] = -2048;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 4096;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment1(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment1 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment1);
 
 
@@ -2623,27 +2696,26 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 2;
         
-        startpoint.pos[0] = 4096;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = -2048;
-        startpoint.pos[3] = 0;
-        
-        midpoint.pos[0] = 4096;
-        midpoint.pos[1] = 0;
-        midpoint.pos[2] = 0;
-        midpoint.pos[3] = 0;
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
         
         endpoint.pos[0] = 2048;
         endpoint.pos[1] = 0;
         endpoint.pos[2] = 0;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = -4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment2(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment2 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment2);
 
 
@@ -2654,33 +2726,27 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 3;
         
-        startpoint.pos[0] = 2048;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = 0;
-        startpoint.pos[3] = 0;
-        
-        midpoint.pos[0] = 1024;
-        midpoint.pos[1] = 0;
-        midpoint.pos[2] = 0;
-        midpoint.pos[3] = 0;
-
-        midpoint2.pos[0] = 1024;
-        midpoint2.pos[1] = -256;
-        midpoint2.pos[2] = 0;
-        midpoint2.pos[3] = 0;
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0]/2;
         
         endpoint.pos[0] = 0;
         endpoint.pos[1] = -256;
         endpoint.pos[2] = 0;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = -2048;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
-        roadpoints.push_back(midpoint2);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment3(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment3 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment3);
 
 
@@ -2691,33 +2757,26 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 4;
         
-        startpoint.pos[0] = 0;
-        startpoint.pos[1] = -256;
-        startpoint.pos[2] = 0;
-        startpoint.pos[3] = 0;
-        
-        midpoint.pos[0] = -1024;
-        midpoint.pos[1] = -256;
-        midpoint.pos[2] = 0;
-        midpoint.pos[3] = 0;
-
-        midpoint2.pos[0] = -1024;
-        midpoint2.pos[1] = 0;
-        midpoint2.pos[2] = 0;
-        midpoint2.pos[3] = 0;
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
         
         endpoint.pos[0] = -2048;
         endpoint.pos[1] = 0;
         endpoint.pos[2] = 0;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = -2048;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
-        roadpoints.push_back(midpoint2);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment4(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment4 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment4);
 
 
@@ -2728,27 +2787,28 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 5;
         
-        startpoint.pos[0] = -2048;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = 0;
-        startpoint.pos[3] = 0;
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0]*2;
         
-        midpoint.pos[0] = -4096;
-        midpoint.pos[1] = 0;
-        midpoint.pos[2] = 0;
-        midpoint.pos[3] = 0;
         
         endpoint.pos[0] = -4096;
         endpoint.pos[1] = 0;
         endpoint.pos[2] = 2048;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 4096;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment5(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment5 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment5);
 
 
@@ -2759,27 +2819,26 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 6;
         
-        startpoint.pos[0] = -4096;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = 2048;
-        startpoint.pos[3] = 0;
-        
-        midpoint.pos[0] = -4096;
-        midpoint.pos[1] = 0;
-        midpoint.pos[2] = 4096;
-        midpoint.pos[3] = 0;
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
         
         endpoint.pos[0] = -2048;
         endpoint.pos[1] = 0;
         endpoint.pos[2] = 4096;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = 4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment6(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment6 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment6);
 
 
@@ -2790,27 +2849,26 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 7;
         
-        startpoint.pos[0] = -2048;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = 4096;
-        startpoint.pos[3] = 0;
-        
-        midpoint.pos[0] = 0;
-        midpoint.pos[1] = 0;
-        midpoint.pos[2] = 4096;
-        midpoint.pos[3] = 0;
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
         
         endpoint.pos[0] = 0;
         endpoint.pos[1] = 0;
         endpoint.pos[2] = 2048;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = -4096;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment7(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment7 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment7);
 
 
@@ -2821,22 +2879,26 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 8;
         
-        startpoint.pos[0] = 0;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = 2048;
-        startpoint.pos[3] = 0;
-        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
         
         endpoint.pos[0] = 0;
         endpoint.pos[1] = 0;
         endpoint.pos[2] = -2048;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = -2048;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment8(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment8 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment8);
     }
 
@@ -2854,6 +2916,10 @@ void gettrack(int num){
         mainplayer.pointing[1] = 0;
         mainplayer.pointing[2] = 1;
 
+        displayobjects[0].center[0] = 3072;//the finish area
+        displayobjects[0].center[1] = 0;
+        displayobjects[0].center[2] = 0;
+
         //curve 1
         
         double roadlength = 2048;
@@ -2865,23 +2931,29 @@ void gettrack(int num){
         startpoint.pos[1] = 0;
         startpoint.pos[2] = 0;
         startpoint.pos[3] = 0;
-        
-        midpoint.pos[0] = 3072;
-        midpoint.pos[1] = 0;
-        midpoint.pos[2] = 2048;
-        midpoint.pos[3] = 0;
+
+        starttangent.pos[0] = 0;
+        starttangent.pos[1] = 0;
+        starttangent.pos[2] = 4096;
+        starttangent.pos[3] = 0;
         
         endpoint.pos[0] = 1024;
         endpoint.pos[1] = 0;
         endpoint.pos[2] = 2048;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = -4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment0(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment0 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment0);
 
 
@@ -2892,33 +2964,27 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 1;
         
-        startpoint.pos[0] = 1024;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = 2048;
-        startpoint.pos[3] = 0;
-        
-        midpoint.pos[0] = 0;
-        midpoint.pos[1] = 0;
-        midpoint.pos[2] = 2048;
-        midpoint.pos[3] = 0;
-
-        midpoint2.pos[0] = 0;
-        midpoint2.pos[1] = -256;
-        midpoint2.pos[2] = 2048;
-        midpoint2.pos[3] = 0;
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0]/2;
         
         endpoint.pos[0] = -1024;
         endpoint.pos[1] = -256;
         endpoint.pos[2] = 2048;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = -4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
-        roadpoints.push_back(midpoint2);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment1(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment1 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment1);
 
 
@@ -2929,27 +2995,26 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 2;
         
-        startpoint.pos[0] = -1024;
-        startpoint.pos[1] = -256;
-        startpoint.pos[2] = 2048;
-        startpoint.pos[3] = 0;
-        
-        midpoint.pos[0] = -3072;
-        midpoint.pos[1] = -256;
-        midpoint.pos[2] = 2048;
-        midpoint.pos[3] = 0;
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
         
         endpoint.pos[0] = -3072;
         endpoint.pos[1] = -256;
         endpoint.pos[2] = 0;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = -4096;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment2(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment2 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment2);
 
 
@@ -2960,27 +3025,26 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 3;
         
-        startpoint.pos[0] = -3072;
-        startpoint.pos[1] = -256;
-        startpoint.pos[2] = 0;
-        startpoint.pos[3] = 0;
-        
-        midpoint.pos[0] = -3072;
-        midpoint.pos[1] = -256;
-        midpoint.pos[2] = -2048;
-        midpoint.pos[3] = 0;
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
         
         endpoint.pos[0] = -1024;
         endpoint.pos[1] = -256;
         endpoint.pos[2] = -2048;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = 4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment3(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment3 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment3);
 
 
@@ -2991,33 +3055,27 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 4;
         
-        startpoint.pos[0] = -1024;
-        startpoint.pos[1] = -256;
-        startpoint.pos[2] = -2048;
-        startpoint.pos[3] = 0;
-        
-        midpoint.pos[0] = 0;
-        midpoint.pos[1] = -256;
-        midpoint.pos[2] = -2048;
-        midpoint.pos[3] = 0;
-
-        midpoint2.pos[0] = 0;
-        midpoint2.pos[1] = 0;
-        midpoint2.pos[2] = -2048;
-        midpoint2.pos[3] = 0;
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0]/2;
         
         endpoint.pos[0] = 1024;
         endpoint.pos[1] = 0;
         endpoint.pos[2] = -2048;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = 4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
-        roadpoints.push_back(midpoint2);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment4(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment4 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment4);
 
 
@@ -3028,27 +3086,26 @@ void gettrack(int num){
         roadwidth = 256;
         roadid = 5;
         
-        startpoint.pos[0] = 1024;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = -2048;
-        startpoint.pos[3] = 0;
-        
-        midpoint.pos[0] = 3072;
-        midpoint.pos[1] = 0;
-        midpoint.pos[2] = -2048;
-        midpoint.pos[3] = 0;
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
         
         endpoint.pos[0] = 3072;
         endpoint.pos[1] = 0;
         endpoint.pos[2] = 0;
         endpoint.pos[3] = 0;
 
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 4096;
+        endtangent.pos[3] = 0;
+
         roadpoints.clear();
         roadpoints.push_back(startpoint);
-        roadpoints.push_back(midpoint);
         roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
 
-        road roadsegment5(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        road* roadsegment5 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
         maintrack.push_back(roadsegment5);
     }
 
@@ -3830,6 +3887,10 @@ int main(int argc, char **argv)
 
                 if (finishedrace()){
                     quit = true;
+                }
+                else{
+                    finished = false;
+                    started = false;
                 }
 
             }
