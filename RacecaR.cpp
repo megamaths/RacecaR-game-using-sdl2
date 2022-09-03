@@ -1294,7 +1294,7 @@ class road{
             
 
 
-            double scaler = 128/length;
+            double scaler = 64/2048.0;
 
             SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth/2,(lastpoint.pos[2])*scaler+dispheight/2,
                                 (startleftpoint.pos[0])*scaler+dispwidth/2,(startleftpoint.pos[2])*scaler+dispheight/2);
@@ -1803,7 +1803,7 @@ class object{ // a thing which will be show contains points and connections and 
         }
 };
 
-std::vector<object> displayobjects;
+std::vector<object*> displayobjects;
 object treetemplate;
 std::vector<point> treeobjlocations;
 
@@ -2561,9 +2561,9 @@ void gettrack(int num){
         mainplayer.totalnumcheckpoints = 1;
         mainplayer.numlaps = 0;
 
-        displayobjects[0].center[0] = 0;//the finish area
-        displayobjects[0].center[1] = 0;
-        displayobjects[0].center[2] = -2048;
+        displayobjects[0]->center[0] = 0;//the finish area
+        displayobjects[0]->center[1] = 0;
+        displayobjects[0]->center[2] = -2048;
 
 
 
@@ -2606,8 +2606,6 @@ void gettrack(int num){
 
     if (num == 0){
 
-        displayobjects[0].center[2] = -2048;
-
         mainplayer.selfpos[0] = 0;
         mainplayer.selfpos[2] = -2048+256;
         
@@ -2618,9 +2616,9 @@ void gettrack(int num){
         mainplayer.totalnumcheckpoints = 9;
         mainplayer.numlaps = 3;
 
-        displayobjects[0].center[0] = 0;//the finish area
-        displayobjects[0].center[1] = 0;
-        displayobjects[0].center[2] = -2048;
+        displayobjects[0]->center[0] = 0;//the finish area
+        displayobjects[0]->center[1] = 0;
+        displayobjects[0]->center[2] = -2048;
 
         //curve 1
         
@@ -2916,9 +2914,9 @@ void gettrack(int num){
         mainplayer.pointing[1] = 0;
         mainplayer.pointing[2] = 1;
 
-        displayobjects[0].center[0] = 3072;//the finish area
-        displayobjects[0].center[1] = 0;
-        displayobjects[0].center[2] = 0;
+        displayobjects[0]->center[0] = 3072;//the finish area
+        displayobjects[0]->center[1] = 0;
+        displayobjects[0]->center[2] = 0;
 
         //curve 1
         
@@ -3109,6 +3107,917 @@ void gettrack(int num){
         maintrack.push_back(roadsegment5);
     }
 
+    if (num == 2){
+
+        mainplayer.selfpos[0] = -4096;
+        mainplayer.selfpos[2] = -2048;
+
+        mainplayer.totalnumcheckpoints = 15;
+        mainplayer.numlaps = 3;
+
+        mainplayer.pointing[0] = 0;
+        mainplayer.pointing[1] = 0;
+        mainplayer.pointing[2] = -1;
+
+        displayobjects[0]->center[0] = -4096;//the finish area
+        displayobjects[0]->center[1] = 0;
+        displayobjects[0]->center[2] = -2048;
+
+        //stright 1
+
+        double roadlength = 2048;
+        double roadspacing = 64;
+        double roadwidth = 256;
+        double roadid = 0;
+        
+        startpoint.pos[0] = -4096;
+        startpoint.pos[1] = 0;
+        startpoint.pos[2] = -2048;
+        startpoint.pos[3] = 0;
+
+        starttangent.pos[0] = 0;
+        starttangent.pos[1] = 0;
+        starttangent.pos[2] = -2048;
+        starttangent.pos[3] = 0;
+        
+        endpoint.pos[0] = -4096;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = -4096;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = -2048;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment0 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment0);
+
+
+        //curve 1
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 1;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[2] = starttangent.pos[2]*2;
+        
+        endpoint.pos[0] = -2048;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = -6044;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment1 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment1);
+
+        //curve 2
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 2;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = 0;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = -4096;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment2 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment2);
+
+
+        //curve 3
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 3;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = 2048;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = -2048;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment3 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment3);
+
+
+        //stright 2
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 4;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0]/2;
+        
+        endpoint.pos[0] = 4096;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = -2048;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 2048;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment4 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment4);
+
+        //curve 4
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 5;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0]*2;
+        
+        endpoint.pos[0] = 6044;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = 0;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment5 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment5);
+
+        //straight 3
+
+        roadlength = 4096;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 6;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0]*2;
+        
+        endpoint.pos[0] = 6044;
+        endpoint.pos[1] = -256;
+        endpoint.pos[2] = 4096;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment6 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment6);
+
+        //curve 5
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 7;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0]*2;
+        
+        endpoint.pos[0] = 4096;
+        endpoint.pos[1] = -256;
+        endpoint.pos[2] = 6044;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = -4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment7 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment7);
+
+        //curve 6
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 8;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = 2048;
+        endpoint.pos[1] = -256;
+        endpoint.pos[2] = 4096;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = -4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment8 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment8);
+
+        //curve 7
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 9;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = 0;
+        endpoint.pos[1] = -256;
+        endpoint.pos[2] = 2048;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = -4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment9 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment9);
+
+        //straight 4
+
+        roadlength = 6044;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 10;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0];
+        
+        endpoint.pos[0] = -6044;
+        endpoint.pos[1] = -192;
+        endpoint.pos[2] = 2048;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = -4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment10 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment10);
+
+        //curve 8
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 11;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0];
+        
+        endpoint.pos[0] = -8192;
+        endpoint.pos[1] = -128;
+        endpoint.pos[2] = 4096;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment11 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment11);
+
+        //curve 9
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 12;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0];
+        
+        endpoint.pos[0] = -6044;
+        endpoint.pos[1] = -64;
+        endpoint.pos[2] = 6044;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment12 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment12);
+
+        //curve 10
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 13;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = -4096;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = 4096;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = -4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment13 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment13);
+
+
+        //stright 5
+
+        roadlength = 6044;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 14;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = -4096;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = -2048;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = -4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment14 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment14);
+        
+    }
+
+    if (num == 3){
+
+        mainplayer.selfpos[0] = 4096;
+        mainplayer.selfpos[2] = -4096;
+
+        mainplayer.totalnumcheckpoints = 14;
+        mainplayer.numlaps = 3;
+
+        mainplayer.pointing[0] = 1;
+        mainplayer.pointing[1] = 0;
+        mainplayer.pointing[2] = 0;
+
+        displayobjects[0]->center[0] = 4096;//the finish area
+        displayobjects[0]->center[1] = 0;
+        displayobjects[0]->center[2] = -4096;
+        double rotvect[3] = {0,-1,0};
+        displayobjects[0]->selfrotate(rotvect,M_PI/2);
+
+        //curve 1
+
+        double roadlength = 2048;
+        double roadspacing = 64;
+        double roadwidth = 256;
+        double roadid = 0;
+        
+        startpoint.pos[0] = 4096;
+        startpoint.pos[1] = 0;
+        startpoint.pos[2] = -4096;
+        startpoint.pos[3] = 0;
+
+        starttangent.pos[0] = 4096;
+        starttangent.pos[1] = 0;
+        starttangent.pos[2] = 0;
+        starttangent.pos[3] = 0;
+        
+        endpoint.pos[0] = 6044;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = -2048;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment0 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment0);
+
+        //curve 2
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 1;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = 4096;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = 0;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = -4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 512;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment1 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment1);
+
+        //big curve 3
+
+        roadlength = 4096;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 2;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0]*1.5;
+        starttangent.pos[2] = starttangent.pos[2]*1.5;
+        
+        endpoint.pos[0] = 0;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = 4096;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = -6044;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 769;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment2 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment2);
+
+        //curve 4
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 3;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[0] = starttangent.pos[0]/1.5;
+        starttangent.pos[2] = starttangent.pos[2]/1.5;
+        
+        endpoint.pos[0] = -2048;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = 2048;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = -4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment3 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment3);
+
+        //stright 1
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 4;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[2] = starttangent.pos[2]/2;
+        
+        endpoint.pos[0] = -2048;
+        endpoint.pos[1] = -64;
+        endpoint.pos[2] = 0;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = -2048;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment4 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment4);
+
+        //curve 5
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 5;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        starttangent.pos[2] = starttangent.pos[2]*2;
+        
+        endpoint.pos[0] = -4096;
+        endpoint.pos[1] = -128;
+        endpoint.pos[2] = -2048;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = -4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment5 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment5);
+
+        //curve 6
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 6;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = -6044;
+        endpoint.pos[1] = -192;
+        endpoint.pos[2] = 0;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment6 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment6);
+
+        //curve 7
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 7;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = -4096;
+        endpoint.pos[1] = -256;
+        endpoint.pos[2] = 2048;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = -512;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment7 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment7);
+
+        //big curve 8
+
+        roadlength = 4096;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 8;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = 0;
+        endpoint.pos[1] = -256;
+        endpoint.pos[2] = -2048;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 512;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = -4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment8 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment8);
+
+        //strightish 2
+
+        roadlength = 4096;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 9;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = 0;
+        endpoint.pos[1] = -192;
+        endpoint.pos[2] = -6044;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = -4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment9 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment9);
+
+        //curve 9
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 10;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = -2048;
+        endpoint.pos[1] = -128;
+        endpoint.pos[2] = -8192;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = -4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment10 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment10);
+
+        //curve 10
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 11;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = -4096;
+        endpoint.pos[1] = -64;
+        endpoint.pos[2] = -6044;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 0;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 4096;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment11 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment11);
+
+        //curve 11
+
+        roadlength = 2048;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 12;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = -2048;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = -4096;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment12 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment12);
+
+        //straight 3
+
+        roadlength = 3072;
+        roadspacing = 64;
+        roadwidth = 256;
+        roadid = 13;
+        
+        startpoint.pos = endpoint.pos;
+        starttangent.pos = endtangent.pos;
+        
+        endpoint.pos[0] = 4096;
+        endpoint.pos[1] = 0;
+        endpoint.pos[2] = -4096;
+        endpoint.pos[3] = 0;
+
+        endtangent.pos[0] = 4096;
+        endtangent.pos[1] = 0;
+        endtangent.pos[2] = 0;
+        endtangent.pos[3] = 0;
+
+        roadpoints.clear();
+        roadpoints.push_back(startpoint);
+        roadpoints.push_back(endpoint);
+        roadpoints.push_back(starttangent);
+        roadpoints.push_back(endtangent);
+
+        road* roadsegment13 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment13);
+
+    }
+
     gettrees();
 
 
@@ -3176,7 +4085,7 @@ bool startscreen(){
 
         mainplayer.selfrender();
         for (int i = 0; i < displayobjects.size(); i++){// all one time objects
-            displayobjects[i].objectrender();
+            displayobjects[i]->objectrender();
         }
 
         for (int i = 0; i < treeobjlocations.size(); i++){
@@ -3347,7 +4256,7 @@ bool finishedrace(){
         renderground();
 
         for (int i = 0; i < displayobjects.size(); i++){// all one time objects
-            displayobjects[i].objectrender();
+            displayobjects[i]->objectrender();
         }
 
         for (int i = 0; i < treeobjlocations.size(); i++){
@@ -3590,7 +4499,7 @@ int main(int argc, char **argv)
 
 
 
-        displayobjects.push_back(racestartobject);
+        displayobjects.push_back(&racestartobject);
 
 
 
@@ -3719,7 +4628,7 @@ int main(int argc, char **argv)
         }
 
 
-        gettrack(0);
+        gettrack(3);
 
         bool started = false;//true;
         bool finished = false;
@@ -3806,7 +4715,7 @@ int main(int argc, char **argv)
             mainplayer.selfrender();
 
             for (int i = 0; i < displayobjects.size(); i++){// all one time objects
-                displayobjects[i].objectrender();
+                displayobjects[i]->objectrender();
             }
             for (int i = 0; i < treeobjlocations.size(); i++){
                 treetemplate.center[0] = treeobjlocations[i].pos[0];
@@ -3898,7 +4807,7 @@ int main(int argc, char **argv)
             //mainplayer.startrace();// used to work out time per sec
 
             double length = 2048;
-            double scaler = 128/length;
+            double scaler = 64/length;
             
 
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
@@ -3906,7 +4815,7 @@ int main(int argc, char **argv)
             SDL_RenderDrawPoint(renderer, dispwidth / 2, dispheight/2);
 
             SDL_RenderPresent( renderer ); //update renderer ??
-            //SDL_Delay(1000/60);
+            SDL_Delay(1000/120);
 
 
 
