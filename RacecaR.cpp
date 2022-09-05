@@ -17,7 +17,7 @@ const double camrotspeed = 0.025;
 const bool fullzbuffer = false; // decide if use z buffer (slow but reliable ) or just draw further polygons first (fast may cause cliping)
 
 double lightpos[3] = {128, -1024 , 0};
-double lightshade[3] = {1,1,1};
+double lightshade[3] = {0.8,0.6,0.6};
 
 
 //The window we'll be rendering toSS
@@ -377,7 +377,7 @@ class buffer{// a z buffer for giving polygons
                     polygonbuffer[nextpoly].distance = -1;
                     SDL_SetRenderDrawColor(renderer , polygonbuffer[nextpoly].colour[0]*lightshade[0] , polygonbuffer[nextpoly].colour[1]*lightshade[1]
                                                     , polygonbuffer[nextpoly].colour[2]*lightshade[2] , 255);
-                    std::cout << "polybuffer " << nextpoly << "\n";
+                    //std::cout << "polybuffer " << nextpoly << "\n";
                     fillpoly(polygonbuffer[nextpoly].points);
                 }
             }
@@ -422,7 +422,7 @@ class camera{
             selfpos[0] += x;
             selfpos[1] += y;
             selfpos[2] += z;
-            printf("CAMERA anglex %.3f angley %.3f (pos %.2f,%.2f,%.2f)\n", xangle, yangle, selfpos[0], selfpos[1], selfpos[2]);
+            //printf("CAMERA anglex %.3f angley %.3f (pos %.2f,%.2f,%.2f)\n", xangle, yangle, selfpos[0], selfpos[1], selfpos[2]);
         }
 
         void rotate(double x,double y){
@@ -452,7 +452,7 @@ class camera{
 
 
             //std::cout << "CAMERA " << anglex << " " << angley << "\n";
-            printf("CAMERA anglex %.3f angley %.3f (pos %.2f,%.2f,%.2f)\n", xangle, yangle, selfpos[0], selfpos[1], selfpos[2]);
+            //printf("CAMERA anglex %.3f angley %.3f (pos %.2f,%.2f,%.2f)\n", xangle, yangle, selfpos[0], selfpos[1], selfpos[2]);
 
         }
 
@@ -1246,7 +1246,7 @@ class road{
                 double normlen = sqrt(normal.pos[0]*normal.pos[0]+normal.pos[2]*normal.pos[2]);
                 double banklen = sqrt(1-nextpoint.pos[3]*nextpoint.pos[3]);
 
-                std::cout << "normal " << normal.pos[0] << " " << normal.pos[1] << " " << normal.pos[2] << "\n";
+                //std::cout << "normal " << normal.pos[0] << " " << normal.pos[1] << " " << normal.pos[2] << "\n";
                 
 
                 normal.pos[0] = width*normal.pos[0]/normlen*banklen;
@@ -1265,10 +1265,54 @@ class road{
 
                 leftpoints.push_back(nextleftpoint);
                 rightpoints.push_back(nextrightpoint);
-                std::cout << "start track pos" << nextleftpoint.pos[0] << " " << nextleftpoint.pos[1] << " " << nextleftpoint.pos[2] << "\n";
-                std::cout << "start track pos" << nextrightpoint.pos[0] << " " << nextrightpoint.pos[1] << " " << nextrightpoint.pos[2] << "\n";
-                std::cout << "normal " << normal.pos[0] << " " << normal.pos[1] << " " << normal.pos[2] << "\n";
-                std::cout << "normal length " << normlen << "\n";
+                //std::cout << "start track pos" << nextleftpoint.pos[0] << " " << nextleftpoint.pos[1] << " " << nextleftpoint.pos[2] << "\n";
+                //std::cout << "start track pos" << nextrightpoint.pos[0] << " " << nextrightpoint.pos[1] << " " << nextrightpoint.pos[2] << "\n";
+                //std::cout << "normal " << normal.pos[0] << " " << normal.pos[1] << " " << normal.pos[2] << "\n";
+                //std::cout << "normal length " << normlen << "\n";
+            }
+        }
+
+        void minimaprender(){
+            point lastpoint;
+            
+            lastpoint.pos[0] = startpoint.pos[0];
+            lastpoint.pos[1] = 0;
+            lastpoint.pos[2] = startpoint.pos[2];
+
+            point startleftpoint = leftpoints[0];
+            point startrightpoint = rightpoints[0];
+
+            double scaler = 32/2048.0;
+
+            SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth*3/4,(lastpoint.pos[2])*scaler+dispheight*3/4,
+                                (startleftpoint.pos[0])*scaler+dispwidth*3/4,(startleftpoint.pos[2])*scaler+dispheight*3/4);
+            SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth*3/4,(lastpoint.pos[2])*scaler+dispheight*3/4,
+                                (startrightpoint.pos[0])*scaler+dispwidth*3/4,(startrightpoint.pos[2])*scaler+dispheight*3/4);
+
+            for (int segnum = 1; segnum <= length/spacing; segnum++){
+                
+                double ratio = segnum*spacing/length;
+                hyperpoint nextpoint = getposofroad(ratio);
+
+                SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth*3/4,(lastpoint.pos[2])*scaler+dispheight*3/4,
+                                        (nextpoint.pos[0])*scaler+dispwidth*3/4,(nextpoint.pos[2])*scaler+dispheight*3/4);
+
+
+                point newleftpoint = leftpoints[segnum];
+                
+                point newrightpoint = rightpoints[segnum];
+
+                point lastleftpoint = leftpoints[segnum-1];
+
+                point lastrightpoint = rightpoints[segnum-1];
+
+                SDL_RenderDrawLine(renderer,(nextpoint.pos[0])*scaler+dispwidth*3/4,(nextpoint.pos[2])*scaler+dispheight*3/4,
+                                (newleftpoint.pos[0])*scaler+dispwidth*3/4,(newleftpoint.pos[2])*scaler+dispheight*3/4);
+                SDL_RenderDrawLine(renderer,(nextpoint.pos[0])*scaler+dispwidth*3/4,(nextpoint.pos[2])*scaler+dispheight*3/4,
+                                (newrightpoint.pos[0])*scaler+dispwidth*3/4,(newrightpoint.pos[2])*scaler+dispheight*3/4);
+                
+                lastpoint.pos[0] = nextpoint.pos[0];
+                lastpoint.pos[2] = nextpoint.pos[2];
             }
         }
 
@@ -1278,13 +1322,6 @@ class road{
 
 
 
-            point lastpoint;
-            /*lastpoint.pos[0] = points[0].pos[0];
-            lastpoint.pos[1] = 0;
-            lastpoint.pos[2] = points[0].pos[2];*/ // old bezier method
-            lastpoint.pos[0] = startpoint.pos[0];
-            lastpoint.pos[1] = 0;
-            lastpoint.pos[2] = startpoint.pos[2];
 
             
 
@@ -1292,14 +1329,6 @@ class road{
             
             point startrightpoint = rightpoints[0];
             
-
-
-            double scaler = 64/2048.0;
-
-            SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth/2,(lastpoint.pos[2])*scaler+dispheight/2,
-                                (startleftpoint.pos[0])*scaler+dispwidth/2,(startleftpoint.pos[2])*scaler+dispheight/2);
-            SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth/2,(lastpoint.pos[2])*scaler+dispheight/2,
-                                (startrightpoint.pos[0])*scaler+dispwidth/2,(startrightpoint.pos[2])*scaler+dispheight/2);
 
 
             int segnum = 0;
@@ -1311,15 +1340,6 @@ class road{
                     SDL_SetRenderDrawColor( renderer, 0x90*lightshade[0], 0x90*lightshade[1], 0x90*lightshade[2], 0xFF);
                 }
                 segnum = segnum + 1;
-
-
-
-                double ratio = dist/length;
-                hyperpoint nextpoint = getposofroad(ratio);
-
-                SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth/2,(lastpoint.pos[2])*scaler+dispheight/2,
-                                        (nextpoint.pos[0])*scaler+dispwidth/2,(nextpoint.pos[2])*scaler+dispheight/2);
-                
                 
 
                 point newleftpoint = leftpoints[segnum];
@@ -1329,14 +1349,6 @@ class road{
                 point lastleftpoint = leftpoints[segnum-1];
 
                 point lastrightpoint = rightpoints[segnum-1];
-
-                SDL_RenderDrawLine(renderer,(nextpoint.pos[0])*scaler+dispwidth/2,(nextpoint.pos[2])*scaler+dispheight/2,
-                                (newleftpoint.pos[0])*scaler+dispwidth/2,(newleftpoint.pos[2])*scaler+dispheight/2);
-                SDL_RenderDrawLine(renderer,(nextpoint.pos[0])*scaler+dispwidth/2,(nextpoint.pos[2])*scaler+dispheight/2,
-                                (newrightpoint.pos[0])*scaler+dispwidth/2,(newrightpoint.pos[2])*scaler+dispheight/2);
-
-                
-                
 
 
                 std::vector<point> newpolygon;
@@ -1367,23 +1379,6 @@ class road{
                         
                     }
                 }
-                
-
-                /*for (int i = 0;i < newpolygon.size();i++){// this draws an outline of the seg but is not cliped so can draw forever
-                    int otherpoint = (i+1)%newpolygon.size();
-                    //std::cout << newpolygon[i].pos[0] << " " << newpolygon[i].pos[1] << "\n";
-
-                    SDL_RenderDrawLine(renderer , newpolygon[i].pos[0]+dispwidth/2, newpolygon[i].pos[1]+dispheight/2
-                                        , newpolygon[otherpoint].pos[0]+dispwidth/2 , newpolygon[otherpoint].pos[1]+dispheight/2);
-
-                    
-                }*/
-                //std::cout << "\n";
-
-
-                lastpoint.pos[0] = nextpoint.pos[0];
-                lastpoint.pos[1] = nextpoint.pos[1];
-                lastpoint.pos[2] = nextpoint.pos[2];
                 
 
             }
@@ -1445,7 +1440,7 @@ class road{
                 newpolygon.push_back(newrightpoint);
                 newpolygon.push_back(newleftpoint);
                 if (isinpoly(newpolygon,givenpospoint)){
-                    std::cout << "trackid" << segnum << "\n";
+                    //std::cout << "trackid" << segnum << "\n";
                     
                     return true;
                 }
@@ -1511,10 +1506,10 @@ class road{
 
         double trackheight(double givenpos[3]){
             int segnum = getsegnumfrompos(givenpos);
-            if (segnum == -1){ // the point is not over a section of this track
+            if (segnum < 1 || segnum > length/spacing){ // the point is not over a section of this track
                 return -1024;
             }
-
+            
             point newleftpoint = leftpoints[segnum];
                 
             point newrightpoint = rightpoints[segnum];
@@ -1556,7 +1551,9 @@ class road{
             //by = -(ax+cz+d)
             //y = -(ax+cz+d)/b
             height = -(a*givenpos[0]+c*givenpos[2]+d)/b;
-
+            if (isnan(height)){
+                return -1024;
+            }
             return height;
         }
 
@@ -1622,7 +1619,7 @@ class face{ // a list of points in a order
                 
 
                 double brightness = 0.5-pointdotnorm(lightpos,center)/3;
-                std::cout << brightness << " brightness\n";
+                //std::cout << brightness << " brightness\n";
 
                 SDL_SetRenderDrawColor(renderer, colour[0]*brightness*lightshade[0], colour[1]*brightness*lightshade[1]
                                                 , colour[2]*brightness*lightshade[2], 255);
@@ -1713,7 +1710,7 @@ class object{ // a thing which will be show contains points and connections and 
 
 
         void objectrender(){
-            std::cout << "start render\n";
+            //std::cout << "start render\n";
             //std::cout << points[0].pos[0] << " " << points[0].pos[1] << " " << points[0].pos[2] << "\n";
             //std::cout << points[1].pos[0] << " " << points[1].pos[1] << " " << points[1].pos[2] << "\n";
             //std::cout << points[2].pos[0] << " " << points[2].pos[1] << " " << points[2].pos[2] << "\n";
@@ -1804,7 +1801,7 @@ class object{ // a thing which will be show contains points and connections and 
 };
 
 std::vector<object*> displayobjects;
-object treetemplate;
+std::vector<object*> treetemplate;
 std::vector<point> treeobjlocations;
 
 
@@ -1933,10 +1930,22 @@ class player{
         }
 
         void move(){
+            
+
+            //std::cout << momentum[0] << " " << momentum[1] << " " << momentum[2] << "\n";
+
+            double momentumdotpoint = momentum[0]*pointing[0]+momentum[1]*pointing[1]+momentum[2]*pointing[2];
+            
+            momentum[0] = momentumdotpoint*pointing[0];
+            momentum[1] = momentumdotpoint*pointing[1];
+            momentum[2] = momentumdotpoint*pointing[2];
+
+            premove(momentum[0],momentum[1],momentum[2]); // keep momentum
+            //std::cout << momentum[0] << " " << momentum[1] << " " << momentum[2] << "\n";
+
             selfpos[0] = selfpos[0] + needtomove[0];
             selfpos[1] = selfpos[1] + needtomove[1];
             selfpos[2] = selfpos[2] + needtomove[2];
-
         }
 
         void turnrotate(double x, double y){
@@ -1951,7 +1960,7 @@ class player{
                 rotspeed = rotspeed + 0.1;
             }
 
-            std::cout << "rotspeed " << rotspeed << "\n";
+            //std::cout << "rotspeed " << rotspeed << "\n";
 
             double newx = -pointing[2]*sin(x*abs(rotspeed))+pointing[0]*cos(x*abs(rotspeed));
             double newz = pointing[0]*sin(x*abs(rotspeed))+pointing[2]*cos(x*abs(rotspeed));
@@ -1969,7 +1978,7 @@ class player{
             
 
 
-            std::cout << "pointing" << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
+            //std::cout << "pointing" << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
 
 
 
@@ -1997,7 +2006,7 @@ class player{
             
 
 
-            std::cout << "pointing" << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
+            //std::cout << "pointing" << pointing[0] << " " << pointing[1] << " " << pointing[2] << "\n";
 
 
 
@@ -2038,10 +2047,14 @@ class player{
         }
 
         void speedcheck(){ // this works out friction and stuff on the car and slows it
-            double frictionco = 0.001;
+            double frictionco = 0.025;
+            maxspeed = 16;
+            revspeed = 16;
             for (int i = 0 ; i < maintrack.size(); i++){
                 if (maintrack[i]->isontrack(selfpos)){
-                    frictionco = 0.002;
+                    frictionco = 0.05;
+                    maxspeed = 48;
+                    revspeed = 24;
                 }
             }
 
@@ -2055,32 +2068,30 @@ class player{
                 speed = -speed;
             }
 
-            frictionco = (frictionco+rotspeed/600);
+            frictionco = (frictionco+abs(rotspeed)/20);
 
-
-
-            std::cout << speed << " speed\n";
+            //std::cout << speed << " speed\n";
             if (speed == 0){}
             else if (speed > 0){ // speed is always pos or 0 ignoring the direction
-                double newspeed = speed - (speed*speed+1)*frictionco;
-                if (newspeed > maxspeed*1000*frictionco){
-                    newspeed = maxspeed*1000*frictionco;
-                }
+                double newspeed = speed - abs(speed*speed/(maxspeed*maxspeed)+1)*frictionco;
 
                 momentum[0] = momentum[0]*newspeed/speed;
                 momentum[1] = momentum[1]*newspeed/speed;
                 momentum[2] = momentum[2]*newspeed/speed;
             }
             else{
-                double newspeed = speed + (speed*speed+1)*frictionco;
-                if (newspeed < revspeed*1000*frictionco){
-                    newspeed = revspeed*1000*frictionco;
-                }
+                double newspeed = speed + abs(speed*speed/(revspeed*revspeed)+1)*frictionco;
 
                 momentum[0] = momentum[0]*newspeed/speed;
                 momentum[1] = momentum[1]*newspeed/speed;
                 momentum[2] = momentum[2]*newspeed/speed;
             }
+            //std::cout << sqrt(momentum[0]*momentum[0]+momentum[2]*momentum[2]) << " new speed\n";
+            
+            //double momentumdotforward = momentum[0]*pointing[0]+momentum[1]*pointing[1]+momentum[2]*pointing[2];
+            //momentum[0] = momentum[0]*momentumdotforward;
+            //momentum[1] = momentum[1]*momentumdotforward;
+            //momentum[2] = momentum[2]*momentumdotforward;
         }
 
 
@@ -2132,7 +2143,7 @@ class player{
                 rotvect[2] = 0;
                 playercar.selfrotate(rotvect,changex);
 
-                std::cout << changex << " yaw\n";
+                //std::cout << changex << " yaw\n";
             }
 
             double changey = 0;
@@ -2155,7 +2166,7 @@ class player{
                 
                 playercar.selfrotate(rotvect,changey);
                 
-                std::cout << -changey << " pitch\n";
+                //std::cout << -changey << " pitch\n";
 
             }
 
@@ -2182,8 +2193,8 @@ class player{
                 changez = -0.01;
             }
 
-            std::cout << "roll cross " << upcrosspointing[0] << " " << upcrosspointing[1] << " " << upcrosspointing[2] << "\n";
-            std::cout << "roll " << nowdotcross << "\n";
+            //std::cout << "roll cross " << upcrosspointing[0] << " " << upcrosspointing[1] << " " << upcrosspointing[2] << "\n";
+            //std::cout << "roll " << nowdotcross << "\n";
 
             if (changez != 0){// roll
                 double rotvect[3];
@@ -2194,28 +2205,25 @@ class player{
                 rotvect[2] = playercar.pointing[2]/xzpointlen;
                 playercar.selfrotate(rotvect,changez);
 
-                std::cout << changez << " roll\n";
+                //std::cout << changez << " roll\n";
             }
             
             
-            std::cout << playercar.pointing[0] << " " << playercar.pointing[1] << " " << playercar.pointing[2] << " end pointing\n";
+            //std::cout << playercar.pointing[0] << " " << playercar.pointing[1] << " " << playercar.pointing[2] << " end pointing\n";
 
-            if (fabs(playercar.pointing[0] - pointing[0]) > 0.0005) {
-                std::cout << "oops\n";
-            }
 
             double enddot = 0;
             for (int i = 0; i < 3;i++){
                 enddot = enddot + pointing[i]*playercar.pointing[i];
             }
 
-            std::cout << startdot << " " << enddot << " dots\n";
-            std::cout << enddot-startdot << " dots diff\n";
+            //std::cout << startdot << " " << enddot << " dots\n";
+            //std::cout << enddot-startdot << " dots diff\n";
 
             double newx = atan2(playercar.pointing[0],playercar.pointing[2]);
             double newy = atan2(playercar.pointing[1],playercar.pointing[2]);
 
-            std::cout << newx << " " << newy << " final angles\n";
+            //std::cout << newx << " " << newy << " final angles\n";
 
         }
 
@@ -2283,7 +2291,7 @@ class player{
 
             for (int i = 0; i < maintrack.size(); i++){
                 if (maintrack[i]->isontrack(selfpos)){
-                    std::cout << "trackid posible" << i << "\n";
+                    //std::cout << "trackid posible" << i << "\n";
                     if (abs(maintrack[i]->trackheight(selfpos)-selfpos[1]) < minchange){
                         minchange = abs(maintrack[i]->trackheight(selfpos)-selfpos[1]);
                         currenttrackid = maintrack[i]->roadid;
@@ -2291,7 +2299,7 @@ class player{
                 }
             }
 
-            std::cout << "trackid " << currenttrackid << "\n";
+            //std::cout << "trackid " << currenttrackid << "\n";
         }
 
         void checkpointcheck(){
@@ -2310,7 +2318,7 @@ class player{
                         std::cout << "checkpoint " << checkpointid << "\n";
                     }
 
-                    if (checkpointid == 0 && checkpointspassed.size() == totalnumcheckpoints){
+                    if (checkpointid == 0 && checkpointspassed.size() >= totalnumcheckpoints/3*2){
                         checkpointspassed.clear();
 
                         timeval currenttime;
@@ -2318,7 +2326,7 @@ class player{
 
                         long long newtime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
 
-                        std::cout << "checkpoint difference " << newtime-timelapstart << "\n";
+                        //std::cout << "checkpoint difference " << newtime-timelapstart << "\n";
 
                         laptimes.push_back(newtime-timelapstart);
 
@@ -2334,8 +2342,8 @@ class player{
 
                         }
 
-                        std::cout << "checkpoint besttime " << currentmintime << "\n";
-                        std::cout << "checkpoint totaltime " << totaltime << "\n";
+                        //std::cout << "checkpoint besttime " << currentmintime << "\n";
+                        //std::cout << "checkpoint totaltime " << totaltime << "\n";
 
                     }
                 }
@@ -2360,7 +2368,7 @@ class player{
             for (int dimension = 0; dimension < 3;dimension++){
                 changevect[dimension] = selfpos[dimension] - maincamera.selfpos[dimension] - maincamera.pointing[dimension]*256;
                 
-                momentum[dimension] = needtomove[dimension];
+                momentum[dimension] = needtomove[dimension];//keep momentum
                 
                 needtomove[dimension] = 0;
                 
@@ -2370,7 +2378,7 @@ class player{
             }
             maincamera.move(changevect[0],changevect[1]-32,changevect[2]);
 
-            std::cout << "camera pos" << maincamera.selfpos[0] << " " << maincamera.selfpos[1] << " " << maincamera.selfpos[2] << "\n";
+            //std::cout << "camera pos" << maincamera.selfpos[0] << " " << maincamera.selfpos[1] << " " << maincamera.selfpos[2] << "\n";
 
 
         }
@@ -2411,18 +2419,18 @@ class player{
                 startdot = startdot + pointing[i]*playercar.pointing[i];
             }
 
-            std::cout << "camera decisions" << abslensdotandcurrent << " " << currentpointdotwanted << " " << rotpointdotwanted << "\n";
+            //std::cout << "camera decisions" << abslensdotandcurrent << " " << currentpointdotwanted << " " << rotpointdotwanted << "\n";
 
-            std::cout << "camera start pointing" << maincamera.pointing[0] << " " << maincamera.pointing[1] << " " << maincamera.pointing[2] << "\n";
+            //std::cout << "camera start pointing" << maincamera.pointing[0] << " " << maincamera.pointing[1] << " " << maincamera.pointing[2] << "\n";
 
             if (changex != 0){// yaw
                 maincamera.rotate(changex/3,0);
 
-                std::cout << changex << " camera yaw\n";
+                //std::cout << changex << " camera yaw\n";
             }
 
 
-            std::cout << "camera pointing" << maincamera.pointing[0] << " " << maincamera.pointing[1] << " " << maincamera.pointing[2] << "\n";
+            //std::cout << "camera pointing" << maincamera.pointing[0] << " " << maincamera.pointing[1] << " " << maincamera.pointing[2] << "\n";
 
 
         }
@@ -2440,7 +2448,7 @@ class player{
 
             speedcheck();
 
-            premove(momentum[0],momentum[1],momentum[2]); // keep momentum
+            
 
 
             move();
@@ -2471,7 +2479,7 @@ player mainplayer;
 void renderground(){
 
     int horizon = dispdist*tan(maincamera.yangle)+dispheight/2; // height not matter as far enough away not matter
-    bool iscarontrack = false;
+    /*bool iscarontrack = false;
     bool carincheckpoint = false;
     for (int i = 0; i < maintrack.size(); i++){
         if (maintrack[i]->isontrack(mainplayer.selfpos)){
@@ -2484,12 +2492,12 @@ void renderground(){
     if (carincheckpoint){
         SDL_SetRenderDrawColor( renderer, 0x00*lightshade[0], 0x00*lightshade[1], 0xff*lightshade[2], 0xFF );
     }
-    else if (iscarontrack){
-        SDL_SetRenderDrawColor( renderer, 0x00*lightshade[0], 0xff*lightshade[1], 0x00*lightshade[2], 0xFF );
-    }
+    else if (iscarontrack){*/
+    SDL_SetRenderDrawColor( renderer, 0x00*lightshade[0], 0xff*lightshade[1], 0x00*lightshade[2], 0xFF );
+    /*}
     else{
         SDL_SetRenderDrawColor( renderer, 0xff*lightshade[0], 0x00*lightshade[1], 0xff*lightshade[2], 0xFF );
-    }
+    }*/
     for (int i = horizon;i < dispheight;i++){
         SDL_RenderDrawLine(renderer , 0,i,dispwidth,i);
     }
@@ -2498,9 +2506,6 @@ void renderground(){
         //if (visable){
         SDL_SetRenderDrawColor( renderer, 0x00, 0x00, 0x00, 0xFF );
         maintrack[i]->renderroad();
-        
-                
-
     }
 }
 
@@ -2514,7 +2519,7 @@ void gettrees(){
         double x = rand()/100000-RAND_MAX/200000;
         double z = rand()/100000-RAND_MAX/200000;
 
-        std::cout << "trees " << x << " " << z << "\n";
+        //std::cout << "trees " << x << " " << z << "\n";
 
         treeloc.pos[0] = x;
         treeloc.pos[1] = 0;
@@ -2549,103 +2554,209 @@ void gettrack(int num){
     
     hyperpoint endtangent;
     hyperpoint starttangent;
+
+
+    std::fstream trackfile;
+    trackfile.open("RacecaR_tracks.txt");
+    std::vector<std::string> trackfilelines;
     
-    if (num == -1){// start screen
-        mainplayer.selfpos[0] = 0;
-        mainplayer.selfpos[2] = -7680;
+    std::string line;
+    std::vector<int> trackstartpoints;
 
-        mainplayer.pointing[0] = 0;
-        mainplayer.pointing[1] = 0;
-        mainplayer.pointing[2] = 1;
+    while (getline(trackfile,line)){
+        //std::cout << line << " file\n";
+        if (line.length() != 0){
+            trackfilelines.push_back(line);
+        }
+        if (line.length() >= 5){
+            if (line[0] == '#'){
+                std::cout << trackfilelines.size()-1 << "\n";
+                trackstartpoints.push_back(trackfilelines.size()-1);
+            }
+        }
+    }
+    std::cout << trackfilelines.size() << "track file size\n";
+    trackstartpoints.push_back(trackfilelines.size());// endpoint use
 
-        mainplayer.totalnumcheckpoints = 1;
-        mainplayer.numlaps = 0;
+    int startline = 0;
+    int endline = 0;
 
-        displayobjects[0]->center[0] = 0;//the finish area
-        displayobjects[0]->center[1] = 0;
-        displayobjects[0]->center[2] = -2048;
+    for (int i = 0; i < trackstartpoints.size()-1; i++){
+        std::string tracknumstr = trackfilelines[trackstartpoints[i]].substr(6,trackfilelines[trackstartpoints[i]].size()-6);
+        if (stoi(tracknumstr) == num){
+            startline = trackstartpoints[i];
+            endline = trackstartpoints[i+1];
+        }
 
+    }
 
+    std::vector<int> seglines;
 
+    for (int i = startline; i < endline; i++){
+        if (trackfilelines[i][0] == '/'){
+            seglines.push_back(i);
+        }
+    }
+    seglines.push_back(endline);
 
-        double roadlength = 16384;
-        double roadspacing = 64;
-        double roadwidth = 256;
-        double roadid = 0;
+    for (int i = startline; i < endline; i++){
+        if (trackfilelines[i][0] == '.'){// an action to set somthing
+            int posequals = 0;
+            std::vector<std::string> arguements;
+            int startletter;
+            int endletter;
+            for (int j = 0; j < trackfilelines[i].size(); j++){// look for = to get arguments
+                if (posequals != 0){
+                    if (trackfilelines[i][j] == ',' || trackfilelines[i][j] == ';'){
+                        endletter = j;
+                        arguements.push_back(trackfilelines[i].substr(startletter,endletter-startletter));
+                        //std::cout << arguements[arguements.size()-1] << " is a arguement\n";
+                        startletter = j + 1;
+                    }
 
-        startpoint.pos[0] = 0;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = -8192;
-        startpoint.pos[3] = 0;
+                }
+                if (trackfilelines[i][j] == '='){
+                    //std::cout << j << " is where = found\n";
+                    posequals = j;
+                    startletter = j+1;
+                }
+            }
 
-        endpoint.pos[0] = 0;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 8192;
-        endpoint.pos[3] = 0;
+            if (trackfilelines[i].substr(0,posequals) == ".selfpos "){
+                for (int j = 0; j < 3; j++){
+                    mainplayer.selfpos[j] = stod(arguements[j]);
+                    //std::cout << stod(arguements[j]) << " selfpos" << j << "\n";
+                }
+            }
 
-        endpoint.pos[0] = 0;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 1;
-        endpoint.pos[3] = 0;
+            if (trackfilelines[i].substr(0,posequals) == ".pointing "){
+                for (int j = 0; j < 3; j++){
+                    mainplayer.pointing[j] = stod(arguements[j]);
+                    //std::cout << stod(arguements[j]) << " pointing" << j << "\n";
+                }
+            }
 
-        endpoint.pos[0] = 0;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 1;
-        endpoint.pos[3] = 0;
+            if (trackfilelines[i].substr(0,posequals) == ".totalnumcheckpoints "){
+                mainplayer.totalnumcheckpoints = stod(arguements[0]);
+                //std::cout << stod(arguements[0]) << " totalnumcheckpoints" << "\n";
+            }
 
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
+            if (trackfilelines[i].substr(0,posequals) == ".numlaps "){
+                mainplayer.numlaps = stod(arguements[0]);
+                //std::cout << stod(arguements[0]) << " numlaps" << "\n";
+            }
 
-        road* roadsegment0 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment0);
+            if (trackfilelines[i].substr(0,posequals) == ".displayobjects center "){
+                for (int j = 0; j < 3; j++){
+                    displayobjects[0]->center[j] = stod(arguements[j]);
+                    //std::cout << stod(arguements[j]) << " displayobjects center" << j << "\n";
+                }
+            }
+
+            if (trackfilelines[i].substr(0,posequals) == ".displayobjects selfrotate "){
+                double rotvect[3] = {0,-1,0};
+                displayobjects[0]->selfrotate(rotvect,stod(arguements[0])*M_PI);
+                //std::cout << stod(arguements[0])*M_PI << " displayobjects selfrotate\n";
+            }
+        }
     }
 
 
-    if (num == 0){
+    for (int i = 0; i < seglines.size()-1; i++){
 
-        mainplayer.selfpos[0] = 0;
-        mainplayer.selfpos[2] = -2048+256;
-        
-        mainplayer.pointing[0] = 0;
-        mainplayer.pointing[1] = 0;
-        mainplayer.pointing[2] = -1;
+        if (i != 0){
+            startpoint.pos = endpoint.pos;
+            starttangent.pos = endtangent.pos;
+        }
 
-        mainplayer.totalnumcheckpoints = 9;
-        mainplayer.numlaps = 3;
+        double starttangentmultiplier = 1;// change how curve a curve is
+        double endtangentmultiplier = 1;
 
-        displayobjects[0]->center[0] = 0;//the finish area
-        displayobjects[0]->center[1] = 0;
-        displayobjects[0]->center[2] = -2048;
+        double roadid = 0;
 
-        //curve 1
-        
-        double roadlength = 2048;
+        for(int j = seglines[i];j < seglines[i+1]; j++){
+            int posequals = 0;
+            std::vector<std::string> arguements;
+            int startletter;
+            int endletter;
+
+            for (int k = 0; k < trackfilelines[j].size(); k++){// look for = to get arguments
+                if (posequals != 0){
+                    if (trackfilelines[j][k] == ',' || trackfilelines[j][k] == ';'){
+                        endletter = k;
+                        arguements.push_back(trackfilelines[j].substr(startletter,endletter-startletter));
+                        //std::cout << arguements[arguements.size()-1] << " is a arguement\n";
+                        startletter = k + 1;
+                    }
+
+                }
+                if (trackfilelines[j][k] == '='){
+                    //std::cout << k << " is where = found\n";
+                    posequals = k;
+                    startletter = k+1;
+                }
+            }
+
+            if (trackfilelines[j].substr(0,posequals) == "startpoint.pos "){
+                for (int k = 0; k < 4; k++){
+                    startpoint.pos[k] = stod(arguements[k]);
+                    //std::cout << stod(arguements[k]) << " startpoint" << k << "\n";
+                }
+            }
+
+            if (trackfilelines[j].substr(0,posequals) == "starttangent.pos "){
+                for (int k = 0; k < 4; k++){
+                    starttangent.pos[k] = stod(arguements[k]);
+                    //std::cout << stod(arguements[k]) << " starttangent" << k << "\n";
+                }
+            }
+
+            if (trackfilelines[j].substr(0,posequals) == "endpoint.pos "){
+                for (int k = 0; k < 4; k++){
+                    endpoint.pos[k] = stod(arguements[k]);
+                    //std::cout << stod(arguements[k]) << " endpoint" << k << "\n";
+                }
+            }
+
+            if (trackfilelines[j].substr(0,posequals) == "endtangent.pos "){
+                for (int k = 0; k < 4; k++){
+                    endtangent.pos[k] = stod(arguements[k]);
+                    //std::cout << stod(arguements[k]) << " endtangent" << k << "\n";
+                }
+            }
+
+            if (trackfilelines[j].substr(0,posequals) == "starttangent.mult "){
+                starttangentmultiplier = stod(arguements[0]);
+                endtangentmultiplier = stod(arguements[0]);
+                //std::cout << stod(arguements[0]) << " starttangent.mult" << "\n";
+            }
+
+            if (trackfilelines[j].substr(0,posequals) == "roadid "){
+                roadid = stod(arguements[0]);
+                std::cout << stod(arguements[0]) << " roadid" << "\n";
+            }
+
+        }
+
+        double roadlength = sqrt((endpoint.pos[0]-startpoint.pos[0])*(endpoint.pos[0]-startpoint.pos[0])
+                                +(endpoint.pos[1]-startpoint.pos[1])*(endpoint.pos[1]-startpoint.pos[1])+
+                                (endpoint.pos[2]-startpoint.pos[2])*(endpoint.pos[2]-startpoint.pos[2]));
         double roadspacing = 64;
         double roadwidth = 256;
-        double roadid = 0;
         
-        startpoint.pos[0] = 0;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = -2048;
-        startpoint.pos[3] = 0;
+        roadlength = (int)(roadlength/roadspacing)*roadspacing;// so exact divide
+        std::cout << roadlength << " roadlen \n";
+
+        starttangent.pos[0] = starttangent.pos[0]*starttangentmultiplier;
+        starttangent.pos[1] = starttangent.pos[1]*starttangentmultiplier;
+        starttangent.pos[2] = starttangent.pos[2]*starttangentmultiplier;
+        starttangent.pos[3] = starttangent.pos[3]*starttangentmultiplier;
+
+        endtangent.pos[0] = endtangent.pos[0]*starttangentmultiplier;
+        endtangent.pos[1] = endtangent.pos[1]*starttangentmultiplier;
+        endtangent.pos[2] = endtangent.pos[2]*starttangentmultiplier;
+        endtangent.pos[3] = endtangent.pos[3]*starttangentmultiplier;
         
-        endpoint.pos[0] = 2048;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -4096;
-        endpoint.pos[3] = 0;
-
-        starttangent.pos[0] = 0;
-        starttangent.pos[1] = 0;
-        starttangent.pos[2] = -4096;
-        starttangent.pos[3] = 0;
-
-        endtangent.pos[0] = 4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
 
         roadpoints.clear();
         roadpoints.push_back(startpoint);
@@ -2653,1369 +2764,13 @@ void gettrack(int num){
         roadpoints.push_back(starttangent);
         roadpoints.push_back(endtangent);
 
-        road* roadsegment0 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment0);
-
-
-        //curve 2
-        
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 1;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-
-        endpoint.pos[0] = 4096;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment1 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment1);
-
-
-        //curve 3
-        
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 2;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = 2048;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 0;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = -4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment2 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment2);
-
-
-        //stright 1
-        
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 3;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0]/2;
-        
-        endpoint.pos[0] = 0;
-        endpoint.pos[1] = -256;
-        endpoint.pos[2] = 0;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = -2048;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment3 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment3);
-
-
-        //stright 2
-        
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 4;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = -2048;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 0;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = -2048;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment4 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment4);
-
-
-        //curve 4
-        
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 5;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0]*2;
-        
-        
-        endpoint.pos[0] = -4096;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment5 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment5);
-
-
-        //curve 5
-        
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 6;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = -2048;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 4096;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment6 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment6);
-
-
-        //curve 6
-        
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 7;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = 0;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = -4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment7 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment7);
-
-
-        //stright 3
-        
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 8;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = 0;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = -2048;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment8 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment8);
-    }
-
-
-        
-
-    if (num == 1){
-        mainplayer.selfpos[0] = 3072;
-        mainplayer.selfpos[2] = 0;
-
-        mainplayer.totalnumcheckpoints = 6;
-        mainplayer.numlaps = 3;
-
-        mainplayer.pointing[0] = 0;
-        mainplayer.pointing[1] = 0;
-        mainplayer.pointing[2] = 1;
-
-        displayobjects[0]->center[0] = 3072;//the finish area
-        displayobjects[0]->center[1] = 0;
-        displayobjects[0]->center[2] = 0;
-
-        //curve 1
-        
-        double roadlength = 2048;
-        double roadspacing = 64;
-        double roadwidth = 256;
-        double roadid = 0;
-        
-        startpoint.pos[0] = 3072;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = 0;
-        startpoint.pos[3] = 0;
-
-        starttangent.pos[0] = 0;
-        starttangent.pos[1] = 0;
-        starttangent.pos[2] = 4096;
-        starttangent.pos[3] = 0;
-        
-        endpoint.pos[0] = 1024;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = -4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment0 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment0);
-
-
-        //stright 1
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 1;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0]/2;
-        
-        endpoint.pos[0] = -1024;
-        endpoint.pos[1] = -256;
-        endpoint.pos[2] = 2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = -4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment1 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment1);
-
-
-        // curve 2
-        
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 2;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = -3072;
-        endpoint.pos[1] = -256;
-        endpoint.pos[2] = 0;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = -4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment2 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment2);
-
-
-        // curve 3
-        
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 3;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = -1024;
-        endpoint.pos[1] = -256;
-        endpoint.pos[2] = -2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment3 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment3);
-
-
-        //stright 2
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 4;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0]/2;
-        
-        endpoint.pos[0] = 1024;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment4 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment4);
-
-
-        // curve 4
-        
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 5;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = 3072;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 0;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment5 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment5);
-    }
-
-    if (num == 2){
-
-        mainplayer.selfpos[0] = -4096;
-        mainplayer.selfpos[2] = -2048;
-
-        mainplayer.totalnumcheckpoints = 15;
-        mainplayer.numlaps = 3;
-
-        mainplayer.pointing[0] = 0;
-        mainplayer.pointing[1] = 0;
-        mainplayer.pointing[2] = -1;
-
-        displayobjects[0]->center[0] = -4096;//the finish area
-        displayobjects[0]->center[1] = 0;
-        displayobjects[0]->center[2] = -2048;
-
-        //stright 1
-
-        double roadlength = 2048;
-        double roadspacing = 64;
-        double roadwidth = 256;
-        double roadid = 0;
-        
-        startpoint.pos[0] = -4096;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = -2048;
-        startpoint.pos[3] = 0;
-
-        starttangent.pos[0] = 0;
-        starttangent.pos[1] = 0;
-        starttangent.pos[2] = -2048;
-        starttangent.pos[3] = 0;
-        
-        endpoint.pos[0] = -4096;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -4096;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = -2048;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment0 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment0);
-
-
-        //curve 1
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 1;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[2] = starttangent.pos[2]*2;
-        
-        endpoint.pos[0] = -2048;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -6044;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment1 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment1);
-
-        //curve 2
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 2;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = 0;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -4096;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment2 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment2);
-
-
-        //curve 3
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 3;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = 2048;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment3 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment3);
-
-
-        //stright 2
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 4;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0]/2;
-        
-        endpoint.pos[0] = 4096;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 2048;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment4 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment4);
-
-        //curve 4
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 5;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0]*2;
-        
-        endpoint.pos[0] = 6044;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 0;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment5 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment5);
-
-        //straight 3
-
-        roadlength = 4096;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 6;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0]*2;
-        
-        endpoint.pos[0] = 6044;
-        endpoint.pos[1] = -256;
-        endpoint.pos[2] = 4096;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment6 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment6);
-
-        //curve 5
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 7;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0]*2;
-        
-        endpoint.pos[0] = 4096;
-        endpoint.pos[1] = -256;
-        endpoint.pos[2] = 6044;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = -4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment7 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment7);
-
-        //curve 6
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 8;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = 2048;
-        endpoint.pos[1] = -256;
-        endpoint.pos[2] = 4096;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = -4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment8 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment8);
-
-        //curve 7
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 9;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = 0;
-        endpoint.pos[1] = -256;
-        endpoint.pos[2] = 2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = -4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment9 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment9);
-
-        //straight 4
-
-        roadlength = 6044;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 10;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0];
-        
-        endpoint.pos[0] = -6044;
-        endpoint.pos[1] = -192;
-        endpoint.pos[2] = 2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = -4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment10 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment10);
-
-        //curve 8
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 11;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0];
-        
-        endpoint.pos[0] = -8192;
-        endpoint.pos[1] = -128;
-        endpoint.pos[2] = 4096;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment11 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment11);
-
-        //curve 9
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 12;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0];
-        
-        endpoint.pos[0] = -6044;
-        endpoint.pos[1] = -64;
-        endpoint.pos[2] = 6044;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment12 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment12);
-
-        //curve 10
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 13;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = -4096;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 4096;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = -4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment13 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment13);
-
-
-        //stright 5
-
-        roadlength = 6044;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 14;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = -4096;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = -4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment14 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment14);
-        
-    }
-
-    if (num == 3){
-
-        mainplayer.selfpos[0] = 4096;
-        mainplayer.selfpos[2] = -4096;
-
-        mainplayer.totalnumcheckpoints = 14;
-        mainplayer.numlaps = 3;
-
-        mainplayer.pointing[0] = 1;
-        mainplayer.pointing[1] = 0;
-        mainplayer.pointing[2] = 0;
-
-        displayobjects[0]->center[0] = 4096;//the finish area
-        displayobjects[0]->center[1] = 0;
-        displayobjects[0]->center[2] = -4096;
-        double rotvect[3] = {0,-1,0};
-        displayobjects[0]->selfrotate(rotvect,M_PI/2);
-
-        //curve 1
-
-        double roadlength = 2048;
-        double roadspacing = 64;
-        double roadwidth = 256;
-        double roadid = 0;
-        
-        startpoint.pos[0] = 4096;
-        startpoint.pos[1] = 0;
-        startpoint.pos[2] = -4096;
-        startpoint.pos[3] = 0;
-
-        starttangent.pos[0] = 4096;
-        starttangent.pos[1] = 0;
-        starttangent.pos[2] = 0;
-        starttangent.pos[3] = 0;
-        
-        endpoint.pos[0] = 6044;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment0 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment0);
-
-        //curve 2
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 1;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = 4096;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 0;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = -4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 512;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment1 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment1);
-
-        //big curve 3
-
-        roadlength = 4096;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 2;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0]*1.5;
-        starttangent.pos[2] = starttangent.pos[2]*1.5;
-        
-        endpoint.pos[0] = 0;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 4096;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = -6044;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 769;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment2 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment2);
-
-        //curve 4
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 3;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[0] = starttangent.pos[0]/1.5;
-        starttangent.pos[2] = starttangent.pos[2]/1.5;
-        
-        endpoint.pos[0] = -2048;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = 2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = -4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment3 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment3);
-
-        //stright 1
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 4;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[2] = starttangent.pos[2]/2;
-        
-        endpoint.pos[0] = -2048;
-        endpoint.pos[1] = -64;
-        endpoint.pos[2] = 0;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = -2048;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment4 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment4);
-
-        //curve 5
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 5;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        starttangent.pos[2] = starttangent.pos[2]*2;
-        
-        endpoint.pos[0] = -4096;
-        endpoint.pos[1] = -128;
-        endpoint.pos[2] = -2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = -4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment5 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment5);
-
-        //curve 6
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 6;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = -6044;
-        endpoint.pos[1] = -192;
-        endpoint.pos[2] = 0;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment6 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment6);
-
-        //curve 7
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 7;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = -4096;
-        endpoint.pos[1] = -256;
-        endpoint.pos[2] = 2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = -512;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment7 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment7);
-
-        //big curve 8
-
-        roadlength = 4096;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 8;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = 0;
-        endpoint.pos[1] = -256;
-        endpoint.pos[2] = -2048;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 512;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = -4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment8 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment8);
-
-        //strightish 2
-
-        roadlength = 4096;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 9;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = 0;
-        endpoint.pos[1] = -192;
-        endpoint.pos[2] = -6044;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = -4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment9 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment9);
-
-        //curve 9
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 10;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = -2048;
-        endpoint.pos[1] = -128;
-        endpoint.pos[2] = -8192;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = -4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment10 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment10);
-
-        //curve 10
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 11;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = -4096;
-        endpoint.pos[1] = -64;
-        endpoint.pos[2] = -6044;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 0;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 4096;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment11 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment11);
-
-        //curve 11
-
-        roadlength = 2048;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 12;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = -2048;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -4096;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment12 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment12);
-
-        //straight 3
-
-        roadlength = 3072;
-        roadspacing = 64;
-        roadwidth = 256;
-        roadid = 13;
-        
-        startpoint.pos = endpoint.pos;
-        starttangent.pos = endtangent.pos;
-        
-        endpoint.pos[0] = 4096;
-        endpoint.pos[1] = 0;
-        endpoint.pos[2] = -4096;
-        endpoint.pos[3] = 0;
-
-        endtangent.pos[0] = 4096;
-        endtangent.pos[1] = 0;
-        endtangent.pos[2] = 0;
-        endtangent.pos[3] = 0;
-
-        roadpoints.clear();
-        roadpoints.push_back(startpoint);
-        roadpoints.push_back(endpoint);
-        roadpoints.push_back(starttangent);
-        roadpoints.push_back(endtangent);
-
-        road* roadsegment13 = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
-        maintrack.push_back(roadsegment13);
-
+        road* roadsegment = new road(roadlength, roadspacing, roadwidth, roadpoints, roadid);
+        maintrack.push_back(roadsegment);
+
+        endtangent.pos[0] = endtangent.pos[0]/starttangentmultiplier;
+        endtangent.pos[1] = endtangent.pos[1]/starttangentmultiplier;
+        endtangent.pos[2] = endtangent.pos[2]/starttangentmultiplier;
+        endtangent.pos[3] = endtangent.pos[3]/starttangentmultiplier;
     }
 
     gettrees();
@@ -4058,7 +2813,7 @@ bool startscreen(){
         const Uint8* currentKeyStates = SDL_GetKeyboardState( NULL );
 
         if( currentKeyStates[ SDL_SCANCODE_SPACE ] ){
-            std::cout << "START\n";
+            //std::cout << "START\n";
             started = true;
         }
 
@@ -4068,6 +2823,10 @@ bool startscreen(){
         if (mainplayer.selfpos[2] > 6144){
             mainplayer.selfpos[2] = -7680;
         }
+        mainplayer.momentum[0] = 0;
+        mainplayer.momentum[1] = 0;
+        mainplayer.momentum[2] = 0;
+
         mainplayer.relmove(0 , 0 , mainmenucarspeed);
         mainplayer.move();
         mainplayer.correctcamerapos();
@@ -4089,10 +2848,10 @@ bool startscreen(){
         }
 
         for (int i = 0; i < treeobjlocations.size(); i++){
-            treetemplate.center[0] = treeobjlocations[i].pos[0];
-            treetemplate.center[1] = treeobjlocations[i].pos[1];
-            treetemplate.center[2] = treeobjlocations[i].pos[2];
-            treetemplate.objectrender();
+            treetemplate[i%5]->center[0] = treeobjlocations[i].pos[0];
+            treetemplate[i%5]->center[1] = treeobjlocations[i].pos[1];
+            treetemplate[i%5]->center[2] = treeobjlocations[i].pos[2];
+            treetemplate[i%5]->objectrender();
         }
 
         mainbuffer.showlisted();
@@ -4124,9 +2883,9 @@ bool finishedrace(){
     int green = 0xff;
     int red = 0x00;
 
-    lightshade[0] = 0.4;
-    lightshade[1] = 0.4;
-    lightshade[2] = 0.4;
+    lightshade[0] = 0.6;
+    lightshade[1] = 0.6;
+    lightshade[2] = 0.6;
 
 
     bool quit = false;
@@ -4183,7 +2942,7 @@ bool finishedrace(){
     std::string line;
 
     while (getline(pbfiles,line)){
-        std::cout << line << " file\n";
+        //std::cout << line << " file\n";
         contents.push_back(line);
     }
 
@@ -4198,12 +2957,12 @@ bool finishedrace(){
     secs = std::string((2-secs.length()),'0') +secs;
     milsecs = std::string((3-milsecs.length()),'0') +milsecs;
 
-    std::string pbstring = "sys best " + mins + ":" + secs + "." + milsecs;
+    std::string pbstring = "best " + mins + ":" + secs + "." + milsecs;
 
     bool isnewpb;
     pbfiles.open("RacecaR_pbs_file.txt",std::fstream::out | std::fstream::trunc);
     for (int i = 0; i < contents.size(); i++){
-        std::cout << contents[i] << " file\n";
+        //std::cout << contents[i] << " file\n";
         if (i == mainplayer.courseid && totalracetime < std::stoi(contents[i])){
             pbfiles << totalracetime << "\n";
             isnewpb = true;
@@ -4260,10 +3019,10 @@ bool finishedrace(){
         }
 
         for (int i = 0; i < treeobjlocations.size(); i++){
-            treetemplate.center[0] = treeobjlocations[i].pos[0];
-            treetemplate.center[1] = treeobjlocations[i].pos[1];
-            treetemplate.center[2] = treeobjlocations[i].pos[2];
-            treetemplate.objectrender();
+            treetemplate[i%5]->center[0] = treeobjlocations[i].pos[0];
+            treetemplate[i%5]->center[1] = treeobjlocations[i].pos[1];
+            treetemplate[i%5]->center[2] = treeobjlocations[i].pos[2];
+            treetemplate[i%5]->objectrender();
         }
 
 
@@ -4287,7 +3046,7 @@ bool finishedrace(){
         }
 
         mainwordwriter.writechars(-256 , -160 , 48, totalracetimestring,4);
-        mainwordwriter.writechars(-256-48*3 , -288 , 48, pbstring, 4);
+        mainwordwriter.writechars(-256+48 , -288 , 48, pbstring, 4);
 
 
         SDL_RenderPresent( renderer ); //update renderer ??
@@ -4310,7 +3069,7 @@ bool finishedrace(){
 bool startup(){ // basic set up
 
 
-    window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, dispwidth, dispheight, SDL_WINDOW_SHOWN );
+    window = SDL_CreateWindow( "RacecaR", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, dispwidth, dispheight, SDL_WINDOW_SHOWN );
     std::cout << window;
     if( window == NULL ){
         std::cout << "Window could not be created! SDL_Error: " << SDL_GetError() << "\n";
@@ -4502,116 +3261,116 @@ int main(int argc, char **argv)
         displayobjects.push_back(&racestartobject);
 
 
-
-
+        object tree1;
+        treetemplate.push_back(&tree1);
 
         objectpoint.pos[0] = 0;
         objectpoint.pos[1] = 0;
         objectpoint.pos[2] = 16;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
         objectpoint.pos[0] = sqrt(3)*16/2;
         objectpoint.pos[1] = 0;
         objectpoint.pos[2] = -16/2;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
         objectpoint.pos[0] = -sqrt(3)*16/2;
         objectpoint.pos[1] = 0;
         objectpoint.pos[2] = -16/2;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
 
 
         objectpoint.pos[0] = 0;
         objectpoint.pos[1] = -36;
         objectpoint.pos[2] = 16;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
         objectpoint.pos[0] = sqrt(3)*16/2;
         objectpoint.pos[1] = -36;
         objectpoint.pos[2] = -16/2;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
         objectpoint.pos[0] = -sqrt(3)*16/2;
         objectpoint.pos[1] = -36;
         objectpoint.pos[2] = -16/2;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
 
 
         objectpoint.pos[0] = 0;
         objectpoint.pos[1] = -32;
         objectpoint.pos[2] = 48;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
         objectpoint.pos[0] = sqrt(3)*48/2;
         objectpoint.pos[1] = -32;
         objectpoint.pos[2] = -48/2;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
         objectpoint.pos[0] = -sqrt(3)*48/2;
         objectpoint.pos[1] = -32;
         objectpoint.pos[2] = -48/2;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
         objectpoint.pos[0] = 0;
         objectpoint.pos[1] = -80;
         objectpoint.pos[2] = 0;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
 
 
         objectpoint.pos[0] = 0;
         objectpoint.pos[1] = -64;
         objectpoint.pos[2] = 32;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
         objectpoint.pos[0] = sqrt(3)*32/2;
         objectpoint.pos[1] = -64;
         objectpoint.pos[2] = -32/2;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
         objectpoint.pos[0] = -sqrt(3)*32/2;
         objectpoint.pos[1] = -64;
         objectpoint.pos[2] = -32/2;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
         objectpoint.pos[0] = 0;
         objectpoint.pos[1] = -96;
         objectpoint.pos[2] = 0;
-        treetemplate.points.push_back(objectpoint);
+        treetemplate[0]->points.push_back(objectpoint);
 
         int brown[3] = {64,32,32};
         int forestgreen[3] = {0,128,0};
 
-        face treeface1(treetemplate.points, {0,1,4,3} ,brown);
-        treetemplate.faces.push_back(treeface1);
+        face treeface1(treetemplate[0]->points, {0,1,4,3} ,brown);
+        treetemplate[0]->faces.push_back(treeface1);
 
-        face treeface2(treetemplate.points, {1,2,5,4} ,brown);
-        treetemplate.faces.push_back(treeface2);
+        face treeface2(treetemplate[0]->points, {1,2,5,4} ,brown);
+        treetemplate[0]->faces.push_back(treeface2);
 
-        face treeface3(treetemplate.points, {2,0,3,5} ,brown);
-        treetemplate.faces.push_back(treeface3);
-
-
-        face treeface4(treetemplate.points, {6,7,9} ,forestgreen);
-        treetemplate.faces.push_back(treeface4);
-
-        face treeface5(treetemplate.points, {7,8,9} ,forestgreen);
-        treetemplate.faces.push_back(treeface5);
-
-        face treeface6(treetemplate.points, {8,6,9} ,forestgreen);
-        treetemplate.faces.push_back(treeface6);
+        face treeface3(treetemplate[0]->points, {2,0,3,5} ,brown);
+        treetemplate[0]->faces.push_back(treeface3);
 
 
-        face treeface7(treetemplate.points, {10,11,13} ,forestgreen);
-        treetemplate.faces.push_back(treeface7);
+        face treeface4(treetemplate[0]->points, {6,7,9} ,forestgreen);
+        treetemplate[0]->faces.push_back(treeface4);
 
-        face treeface8(treetemplate.points, {11,12,13} ,forestgreen);
-        treetemplate.faces.push_back(treeface8);
+        face treeface5(treetemplate[0]->points, {7,8,9} ,forestgreen);
+        treetemplate[0]->faces.push_back(treeface5);
 
-        face treeface9(treetemplate.points, {12,10,13} ,forestgreen);
-        treetemplate.faces.push_back(treeface9);
+        face treeface6(treetemplate[0]->points, {8,6,9} ,forestgreen);
+        treetemplate[0]->faces.push_back(treeface6);
+
+
+        face treeface7(treetemplate[0]->points, {10,11,13} ,forestgreen);
+        treetemplate[0]->faces.push_back(treeface7);
+
+        face treeface8(treetemplate[0]->points, {11,12,13} ,forestgreen);
+        treetemplate[0]->faces.push_back(treeface8);
+
+        face treeface9(treetemplate[0]->points, {12,10,13} ,forestgreen);
+        treetemplate[0]->faces.push_back(treeface9);
 
 
         point treeloc;
@@ -4621,6 +3380,24 @@ int main(int argc, char **argv)
         treeobjlocations.push_back(treeloc);
 
 
+        for (int i = 0; i < 4;i++){
+            treetemplate.push_back(new object);
+            for (int j = 0; j < 14; j++){
+                objectpoint.pos[0] = treetemplate[0]->points[j].pos[0]*(i+2);
+                objectpoint.pos[1] = treetemplate[0]->points[j].pos[1]*(i+2);
+                objectpoint.pos[2] = treetemplate[0]->points[j].pos[2]*(i+2);
+                treetemplate[i+1]->points.push_back(objectpoint);
+                //std::cout << objectpoint.pos[0] << " " << objectpoint.pos[1] << " " << objectpoint.pos[2] << "\n";
+            }
+            //std::cout << "\n";
+
+            for (int j = 0;j < 9; j++){
+                face treefacej(treetemplate[i+1]->points, treetemplate[0]->faces[j].pointnums, treetemplate[0]->faces[j].colour); // almost a copy of original
+                treetemplate[i+1]->faces.push_back(treefacej);
+            }
+        }
+
+
 
 
         if (startscreen()){ // the title screen
@@ -4628,7 +3405,7 @@ int main(int argc, char **argv)
         }
 
 
-        gettrack(3);
+        gettrack(0);
 
         bool started = false;//true;
         bool finished = false;
@@ -4652,29 +3429,23 @@ int main(int argc, char **argv)
             const Uint8* currentKeyStates = SDL_GetKeyboardState( NULL );
             
             if( currentKeyStates[ SDL_SCANCODE_W ] ){
-                std::cout << "W";
-                mainplayer.accelerate(1);}
+                //std::cout << "W";
+                mainplayer.accelerate(0.1);}
             if( currentKeyStates[ SDL_SCANCODE_S ] ){
-                std::cout << "S";
-                mainplayer.accelerate(-1);}
+                //std::cout << "S";
+                mainplayer.accelerate(-0.1);}
             /*if( currentKeyStates[ SDL_SCANCODE_A ] ){// strafe in car hard
                 std::cout << "A";
-                mainplayer.sideaccelerate(-0.5);}
+                mainplayer.sideaccelerate(-0.25);}
             if( currentKeyStates[ SDL_SCANCODE_D ] ){
                 std::cout << "D";
-                mainplayer.sideaccelerate(0.5);}*/
-            /*if( currentKeyStates[ SDL_SCANCODE_Q ] ){
-                std::cout << "Q";
-                mainplayer.relmove(0,-camspeed,0);}
-            if( currentKeyStates[ SDL_SCANCODE_E ] ){
-                std::cout << "E";
-                mainplayer.relmove(0,camspeed,0);}*///cant fly directly up/down
+                mainplayer.sideaccelerate(0.25);}*/
 
             if( currentKeyStates[ SDL_SCANCODE_LEFT ] ){
-                std::cout << "LEFT";
+                //std::cout << "LEFT";
                 mainplayer.turnrotate(camrotspeed,0);}
             if( currentKeyStates[ SDL_SCANCODE_RIGHT ] ){
-                std::cout << "RIGHT";
+                //std::cout << "RIGHT";
                 mainplayer.turnrotate(-camrotspeed,0);}
             /*if( currentKeyStates[ SDL_SCANCODE_DOWN ] ){
                 std::cout << "DOWN";
@@ -4718,13 +3489,19 @@ int main(int argc, char **argv)
                 displayobjects[i]->objectrender();
             }
             for (int i = 0; i < treeobjlocations.size(); i++){
-                treetemplate.center[0] = treeobjlocations[i].pos[0];
-                treetemplate.center[1] = treeobjlocations[i].pos[1];
-                treetemplate.center[2] = treeobjlocations[i].pos[2];
-                treetemplate.objectrender();
+                treetemplate[i%5]->center[0] = treeobjlocations[i].pos[0];
+                treetemplate[i%5]->center[1] = treeobjlocations[i].pos[1];
+                treetemplate[i%5]->center[2] = treeobjlocations[i].pos[2];
+                treetemplate[i%5]->objectrender();
             }
 
             mainbuffer.showlisted();
+
+            for (int i = 0; i < maintrack.size(); i++){// mini map after everything else
+                //if (visable){
+                SDL_SetRenderDrawColor( renderer, 0x00, 0x00, 0x00, 0xFF );
+                maintrack[i]->minimaprender();
+            }
             
 
             timeval currenttime;
@@ -4763,7 +3540,7 @@ int main(int argc, char **argv)
             mainwordwriter.writechars(-dispwidth/2+256 , dispheight/2-48 , 32, totalracetimestring,2);
 
 
-            std::cout << totalracetimestring << " HUD \n";
+            //std::cout << totalracetimestring << " HUD \n";
 
 
 
@@ -4783,7 +3560,7 @@ int main(int argc, char **argv)
                 mainwordwriter.writechars(-dispwidth/2+256 , dispheight/2-128 , 16, totalracetimestring,2);
 
 
-                std::cout << totalracetimestring << " HUD \n";
+                //std::cout << totalracetimestring << " HUD \n";
 
                 
             }
@@ -4806,12 +3583,20 @@ int main(int argc, char **argv)
 
             //mainplayer.startrace();// used to work out time per sec
 
-            double length = 2048;
-            double scaler = 64/length;
+            double scaler = 32/2048.0;
             
 
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth / 2, mainplayer.selfpos[2]*scaler+dispheight/2);
+            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4 -1, mainplayer.selfpos[2]*scaler+dispheight*3/4 -1);
+            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4 -1, mainplayer.selfpos[2]*scaler+dispheight*3/4);
+            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4 -1, mainplayer.selfpos[2]*scaler+dispheight*3/4 +1);
+            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4, mainplayer.selfpos[2]*scaler+dispheight*3/4 -1);
+            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4, mainplayer.selfpos[2]*scaler+dispheight*3/4);
+            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4, mainplayer.selfpos[2]*scaler+dispheight*3/4 +1);
+            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4 +1, mainplayer.selfpos[2]*scaler+dispheight*3/4 -1);
+            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4 +1, mainplayer.selfpos[2]*scaler+dispheight*3/4);
+            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4 +1, mainplayer.selfpos[2]*scaler+dispheight*3/4 +1);
+
             SDL_RenderDrawPoint(renderer, dispwidth / 2, dispheight/2);
 
             SDL_RenderPresent( renderer ); //update renderer ??
