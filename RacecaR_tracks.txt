@@ -1,0 +1,487 @@
+#track-1
+
+.selfpos = 0,0,-7680;
+
+.pointing = 0,0,1;
+
+.totalnumcheckpoints = 1;
+.numlaps = 0;
+
+.displayobjects center = 0,0,-2048;
+
+roadid = 0;
+
+//straight 1
+
+startpoint.pos = 0,0,-8192,0;
+
+endpoint.pos = 0,0,8192,0;
+
+starttangent.pos = 0,0,1,0;
+
+endtangent.pos = 0,0,1,0;
+
+
+#track0
+
+.selfpos = 0,0,-1792;
+
+.pointing = 0,0,-1;
+
+.totalnumcheckpoints = 9;
+.numlaps = 3;
+
+.displayobjects center = 0,0,-2048;
+
+//curve 1
+
+roadid = 0;
+
+startpoint.pos = 0,0,-2048,0;
+
+endpoint.pos = 2048,0,-4096,0;
+
+starttangent.pos = 0,0,-4096,0;
+
+endtangent.pos = 4096,0,0,0;
+
+
+//curve 2
+
+roadid = 1;
+
+endpoint.pos = 4096,0,-2048,0;
+
+endtangent.pos = 0,0,4096,0;
+
+
+//curve 3
+
+roadid = 2;
+
+endpoint.pos = 2048,0,0,0;
+
+endtangent.pos = -4096,0,0,0;
+
+
+//stright 1
+
+roadid = 3;
+
+starttangent.mult = 0.5;
+
+endpoint.pos = 0,-256,0,0;
+
+endtangent.pos = -4096,0,0,0;
+
+
+//stright 2
+
+starttangent.mult = 0.5;
+
+roadid = 4;
+
+endpoint.pos = -2048,0,0,0;
+
+endtangent.pos = -4096,0,0,0;
+
+
+//curve 4
+
+roadid = 5;
+
+endpoint.pos = -4096,0,2048,0;
+
+endtangent.pos = 0,0,4096,0;
+
+
+//curve 5
+
+roadid = 6;
+
+endpoint.pos = -2048,0,4096,0;
+
+endtangent.pos = 4096,0,0,0;
+
+
+//curve 6
+
+roadid = 7;
+
+endpoint.pos = 0,0,2048,0;
+
+endtangent.pos = 0,0,-4096,0;
+
+
+//stright 3
+
+roadid = 8;
+
+endpoint.pos = 0,0,-2048,0;
+
+endtangent.pos = 0,0,-2048,0;
+
+#track-2
+
+.selfpos = 3072,0,0;
+
+.totalnumcheckpoints = 6;
+.numlaps = 3;
+
+.pointing = 0,0,1;
+
+.displayobjects center = 3072,0,0;
+
+//curve 1
+
+roadid = 0;
+
+startpoint.pos = 3072,0,0,0;
+
+starttangent.pos = 0,0,4096,0;
+
+endpoint.pos = 1024,0,2048,0;
+
+endtangent.pos = -4096,0,0,0;
+
+
+//stright 1
+
+roadid = 1;
+
+starttangent.mult = 0.5;
+
+endpoint.pos = -1024,-256,2048,0;
+
+endtangent.pos = -4096,0,0,0;
+
+
+// curve 2
+
+roadid = 2;
+
+endpoint.pos = -3072,-256,0,0;
+
+endtangent.pos = 0,0,-4096,0;
+
+
+// curve 3
+
+roadid = 3;
+
+endpoint.pos = -1024,-256,-2048,0;
+
+endtangent.pos = 4096,0,0,0;
+
+
+//stright 2
+
+roadid = 4;
+
+starttangent.mult = 0.5;
+
+endpoint.pos = 1024,0,-2048,0;
+
+endtangent.pos = 4096,0,0,0;
+
+
+// curve 4
+
+roadid = 5;
+
+endpoint.pos = 3072,0,0,0;
+
+endtangent.pos = 0,0,4096,0;
+
+#track1
+
+.selfpos = -4096,0,-2048;
+
+.totalnumcheckpoints = 15;
+.numlaps = 3;
+
+.pointing = 0,0,-1;
+
+.displayobjects center = -4096,0,-2048;
+
+//stright 1
+
+roadid = 0;
+
+startpoint.pos = -4096,0,-2048,0;
+
+starttangent.pos = 0,0,-2048,0;
+
+endpoint.pos = -4096,0,-4096,0;
+
+endtangent.pos = 0,0,-2048,0;
+
+//curve 1
+
+roadid = 1;
+
+starttangent.pos[2] = starttangent.pos[2]*2;
+
+endpoint.pos = -2048,0,-6044,0;
+
+endtangent.pos = 4096,0,0,0;
+
+//curve 2
+
+roadid = 2;
+
+endpoint.pos = 0,0,-4096,0;
+
+endtangent.pos = 0,0,4096,0;
+
+//curve 3
+
+roadid = 3;
+
+endpoint.pos = 2048,0,-2048,0;
+
+endtangent.pos = 4096,0,0,0;
+
+//stright 2
+
+roadid = 4;
+
+starttangent.mult = 0.5;
+
+endpoint.pos = 4096,0,-2048,0;
+
+endtangent.pos = 2048,0,0,0;
+
+//curve 4
+
+roadid = 5;
+
+endpoint.pos = 6044,0,0,0;
+
+endtangent.pos = 0,0,4096,0;
+
+//straight 3
+
+roadid = 6;
+
+starttangent.mult = 2;
+
+endpoint.pos = 6044,-256,4096,0;
+
+endtangent.pos = 0,0,4096,0;
+
+//curve 5
+
+roadid = 7;
+
+endpoint.pos = 4096,-256,6044,0;
+
+endtangent.pos = -4096,0,0,0;
+
+
+//curve 6
+
+roadid = 8;
+
+endpoint.pos = 2048,-256,4096,0;
+
+endtangent.pos = 0,0,-4096,0;
+
+
+//curve 7
+
+roadid = 9;
+
+endpoint.pos = 0,-256,2048,0;
+
+endtangent.pos = -4096,0,0,0;
+
+
+//straight 4
+
+roadid = 10;
+
+endpoint.pos = -6044,-192,2048,0;
+
+endtangent.pos = -4096,0,0,0;
+
+
+//curve 8
+
+roadid = 11;
+
+endpoint.pos = -8192,-128,4096,0;
+
+endtangent.pos = 0,0,4096,0;
+
+
+//curve 9
+
+roadid = 12;
+
+endpoint.pos = -6044,-64,6044,0;
+
+endtangent.pos = 4096,0,0,0;
+
+
+//curve 10
+
+roadid = 13;
+
+endpoint.pos = -4096,0,4096,0;
+
+endtangent.pos = 0,0,-4096,0;
+
+
+//stright 5
+
+roadid = 14;
+
+endpoint.pos = -4096,0,-2048,0;
+
+endtangent.pos[0] = 0,0,-4096,0;
+
+
+#track2
+
+.selfpos = 4096,0,-4096;
+
+.totalnumcheckpoints = 14;
+.numlaps = 3;
+
+.pointing = 1,0,0;
+
+.displayobjects center = 4096,0,-4096;
+.displayobjects selfrotate = 0.5;
+
+//curve 1
+
+roadid = 0;
+
+startpoint.pos = 4096,0,-4096,0;
+
+starttangent.pos = 4096,0,0,0;
+
+endpoint.pos = 6044,0,-2048,0;
+
+endtangent.pos = 0,0,4096,0;
+
+
+//curve 2
+
+roadid = 1;
+
+endpoint.pos = 4096,0,0,0;
+
+endtangent.pos = -4096,0,512,0;
+
+
+//big curve 3
+
+roadid = 2;
+
+starttangent.mult = 1.5;
+
+endpoint.pos = 0,0,4096,0;
+
+endtangent.pos = -6044,0,769,0;
+
+//curve 4
+
+roadid = 3;
+
+endpoint.pos = -2048,0,2048,0;
+
+endtangent.pos = 0,0,-4096,0;
+
+//stright 1
+
+roadid = 4;
+
+starttangent.pos[2] = starttangent.pos[2]/2;
+
+endpoint.pos = -2048,-64,0,0;
+
+endtangent.pos = 0,0,-2048,0;
+
+//curve 5
+
+roadid = 5;
+
+starttangent.pos[2] = starttangent.pos[2]*2;
+
+endpoint.pos = -4096,-128,-2048,0;
+
+endtangent.pos = -4096,0,0,0;
+
+
+//curve 6
+
+roadid = 6;
+
+endpoint.pos = -6044,-192,0,0;
+
+endtangent.pos = 0,0,4096,0;
+
+
+//curve 7
+
+roadid = 7;
+
+endpoint.pos = -4096,-256,2048,0;
+
+endtangent.pos = 4096,0,-512,0;
+
+
+//big curve 8
+
+roadid = 8;
+
+endpoint.pos = 0,-256,-2048,0;
+
+endtangent.pos = 512,0,-4096,0;
+
+
+//strightish 2
+
+roadid = 9;
+
+endpoint.pos = 0,-192,-6044,0;
+
+endtangent.pos = 0,0,-4096,0;
+
+
+//curve 9
+
+roadid = 10;
+
+endpoint.pos = -2048,-128,-8192,0;
+
+endtangent.pos = -4096,0,0,0;
+
+
+//curve 10
+
+roadid = 11;
+
+endpoint.pos = -4096,-64,-6044,0;
+
+endtangent.pos = 0,0,4096,0;
+
+
+//curve 11
+
+roadid = 12;
+
+endpoint.pos = -2048,0,-4096,0;
+
+endtangent.pos = 4096,0,0,0;
+
+
+//straight 3
+
+roadid = 13;
+
+endpoint.pos = 4096,0,-4096,0;
+
+endtangent.pos = 4096,0,0,0;
