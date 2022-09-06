@@ -9,6 +9,8 @@
 
 .displayobjects center = 0,0,-2048;
 
+.lightval = 0.8,0.7,0.7;
+
 roadid = 0;
 
 //straight 1
@@ -29,9 +31,11 @@ endtangent.pos = 0,0,1,0;
 .pointing = 0,0,-1;
 
 .totalnumcheckpoints = 9;
-.numlaps = 3;
+.numlaps = 4;
 
 .displayobjects center = 0,0,-2048;
+
+.lightval = 0.9,0.6,0.6;
 
 //curve 1
 
@@ -132,6 +136,9 @@ endtangent.pos = 0,0,-2048,0;
 
 .displayobjects center = 3072,0,0;
 
+.lightval = 0.8,0.7,0.7;
+
+
 //curve 1
 
 roadid = 0;
@@ -203,6 +210,8 @@ endtangent.pos = 0,0,4096,0;
 .pointing = 0,0,-1;
 
 .displayobjects center = -4096,0,-2048;
+
+.lightval = 1,0.8,0.8;
 
 //stright 1
 
@@ -353,6 +362,8 @@ endtangent.pos[0] = 0,0,-4096,0;
 
 .displayobjects center = 4096,0,-4096;
 .displayobjects selfrotate = 0.5;
+
+.lightval = 0.4,0.3,0.5;
 
 //curve 1
 

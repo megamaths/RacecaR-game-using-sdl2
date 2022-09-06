@@ -982,6 +982,9 @@ class wordwriter{
             colon.addline(0,-0.8 , 0,-0.8);
             colon.addline(0,0.8 , 0,0.8);
 
+            letter slash;///;
+            slash.addline(-0.5,-1 , 0.5,1);
+
 
 
 
@@ -1028,6 +1031,7 @@ class wordwriter{
 
             letters.push_back(dot);
             letters.push_back(colon);
+            letters.push_back(slash);
 
 
         }
@@ -1045,6 +1049,9 @@ class wordwriter{
             }
             else if (int(theletter) == 46){
                 num = 36;
+            }
+            else if (int(theletter) == 47){
+                num = 38;
             }
             else if (int(theletter) == 58){
                 num = 37;
@@ -2336,7 +2343,7 @@ class player{
 
                     if (!haspassed){
                         checkpointspassed.push_back(checkpointid);
-                        std::cout << "checkpoint " << checkpointid << "\n";
+                        //std::cout << "checkpoint " << checkpointid << "\n";
                     }
 
                     if (checkpointid == 0 && checkpointspassed.size() >= totalnumcheckpoints/3*2){
@@ -2587,12 +2594,12 @@ void gettrack(int num){
         }
         if (line.length() >= 5){
             if (line[0] == '#'){
-                std::cout << trackfilelines.size()-1 << "\n";
+                //std::cout << trackfilelines.size()-1 << "\n";
                 trackstartpoints.push_back(trackfilelines.size()-1);
             }
         }
     }
-    std::cout << trackfilelines.size() << "track file size\n";
+    //std::cout << trackfilelines.size() << "track file size\n";
     trackstartpoints.push_back(trackfilelines.size());// endpoint use
 
     int startline = 0;
@@ -2674,6 +2681,12 @@ void gettrack(int num){
                 double rotvect[3] = {0,-1,0};
                 displayobjects[0]->selfrotate(rotvect,stod(arguements[0])*M_PI);
                 //std::cout << stod(arguements[0])*M_PI << " displayobjects selfrotate\n";
+            }
+
+            if (trackfilelines[i].substr(0,posequals) == ".lightval "){
+                for (int j = 0; j < 3; j++){
+                    lightshade[j] = stod(arguements[j]);
+                }
             }
         }
     }
@@ -2909,9 +2922,9 @@ bool finishedrace(){
     int green = 0xff;
     int red = 0x00;
 
-    lightshade[0] = 0.6;
-    lightshade[1] = 0.6;
-    lightshade[2] = 0.6;
+    lightshade[0] = lightshade[0]*0.6;
+    lightshade[1] = lightshade[1]*0.6;
+    lightshade[2] = lightshade[2]*0.6;
 
 
     bool quit = false;
@@ -3022,7 +3035,7 @@ bool finishedrace(){
         const Uint8* currentKeyStates = SDL_GetKeyboardState( NULL );
 
         if( currentKeyStates[ SDL_SCANCODE_SPACE ] ){
-            std::cout << "continue\n";
+            //std::cout << "continue\n";
             quit = true;
         }
 
@@ -3088,9 +3101,9 @@ bool finishedrace(){
 
     }
 
-    lightshade[0] = 1;
-    lightshade[1] = 1;
-    lightshade[2] = 1;
+    lightshade[0] = lightshade[0]/0.6;
+    lightshade[1] = lightshade[1]/0.6;
+    lightshade[2] = lightshade[2]/0.6;
 
     gettrack(mainplayer.courseid+1);
 
@@ -3104,7 +3117,7 @@ bool startup(){ // basic set up
 
 
     window = SDL_CreateWindow( "RacecaR", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, dispwidth, dispheight, SDL_WINDOW_SHOWN );
-    std::cout << window;
+    //std::cout << window;
     if( window == NULL ){
         std::cout << "Window could not be created! SDL_Error: " << SDL_GetError() << "\n";
         return false;
@@ -3601,9 +3614,11 @@ int main(int argc, char **argv)
 
 
                 //std::cout << totalracetimestring << " HUD \n";
-
-                
             }
+
+            std::string lapstring = "lap " + std::to_string(mainplayer.laptimes.size()+1) + "/" + std::to_string(mainplayer.numlaps);
+            mainwordwriter.writechars(dispwidth/2-256 , dispheight/2-48 , 32, lapstring,2);
+
 
             if (mainplayer.laptimes.size() == mainplayer.numlaps && !finished){// finished race only on first detection
                 std::string finishedstring = "finished";
@@ -3645,15 +3660,14 @@ int main(int argc, char **argv)
 
             gettimeofday(&currenttime,NULL);
             long long thisframetime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
-            std::cout << ( 16666 - (thisframetime-lastframetime)) /1000.0 << "\n";//16666 as 16.666 ms *1000
+            //std::cout << ( 16666 - (thisframetime-lastframetime)) /1000.0 << "\n";//16666 as 16.666 ms *1000
             if (( 16666 - (thisframetime-lastframetime)) /1000.0 > 0){
                 SDL_Delay(( 16666 - (thisframetime-lastframetime)) /1000.0);
             }
             gettimeofday(&currenttime,NULL);
-            std::cout << thisframetime-lastframetime << "\n";
+            //std::cout << thisframetime-lastframetime << "\n";
             lastframetime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
-            std::cout << lastframetime << "\n";
-
+            
 
         }
     }
