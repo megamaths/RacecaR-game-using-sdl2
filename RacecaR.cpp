@@ -19,6 +19,9 @@ const bool fullzbuffer = false; // decide if use z buffer (slow but reliable ) o
 double lightpos[3] = {128, -1024 , 0};
 double lightshade[3] = {0.8,0.6,0.6};
 
+long long lastframetime;
+
+
 
 //The window we'll be rendering toSS
 SDL_Window* window = NULL;
@@ -2733,7 +2736,7 @@ void gettrack(int num){
 
             if (trackfilelines[j].substr(0,posequals) == "roadid "){
                 roadid = stod(arguements[0]);
-                std::cout << stod(arguements[0]) << " roadid" << "\n";
+                //std::cout << stod(arguements[0]) << " roadid" << "\n";
             }
 
         }
@@ -2745,7 +2748,7 @@ void gettrack(int num){
         double roadwidth = 256;
         
         roadlength = (int)(roadlength/roadspacing)*roadspacing;// so exact divide
-        std::cout << roadlength << " roadlen \n";
+        //std::cout << roadlength << " roadlen \n";
 
         starttangent.pos[0] = starttangent.pos[0]*starttangentmultiplier;
         starttangent.pos[1] = starttangent.pos[1]*starttangentmultiplier;
@@ -2864,7 +2867,16 @@ bool startscreen(){
         mainwordwriter.writechars(-dispwidth/2+256 , -128 , 32, numstring,2);
 
         SDL_RenderPresent( renderer ); //update renderer ??
-        //SDL_Delay(1000/60);
+
+
+        timeval currenttime;
+        gettimeofday(&currenttime,NULL);
+        long long thisframetime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
+        if (( 16666 - (thisframetime-lastframetime)) /1000.0 > 0){
+            SDL_Delay(( 16666 - (thisframetime-lastframetime)) /1000.0);
+        }
+        gettimeofday(&currenttime,NULL);
+        lastframetime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
 
     }
 
@@ -3050,7 +3062,15 @@ bool finishedrace(){
 
 
         SDL_RenderPresent( renderer ); //update renderer ??
-        //SDL_Delay(1000/60);
+
+        timeval currenttime;
+        gettimeofday(&currenttime,NULL);
+        long long thisframetime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
+        if (( 16666 - (thisframetime-lastframetime)) /1000.0 > 0){
+                SDL_Delay(( 16666 - (thisframetime-lastframetime)) /1000.0);
+        }
+        gettimeofday(&currenttime,NULL);
+        lastframetime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
 
     }
 
@@ -3398,6 +3418,12 @@ int main(int argc, char **argv)
         }
 
 
+        timeval currenttime;
+        gettimeofday(&currenttime,NULL);
+
+        lastframetime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
+
+
 
 
         if (startscreen()){ // the title screen
@@ -3577,6 +3603,7 @@ int main(int argc, char **argv)
                 else{
                     finished = false;
                     started = false;
+                    mainplayer.startrace();// reset timer for countdown
                 }
 
             }
@@ -3600,9 +3627,18 @@ int main(int argc, char **argv)
             SDL_RenderDrawPoint(renderer, dispwidth / 2, dispheight/2);
 
             SDL_RenderPresent( renderer ); //update renderer ??
-            SDL_Delay(1000/120);
+            
 
-
+            gettimeofday(&currenttime,NULL);
+            long long thisframetime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
+            std::cout << ( 16666 - (thisframetime-lastframetime)) /1000.0 << "\n";//16666 as 16.666 ms *1000
+            if (( 16666 - (thisframetime-lastframetime)) /1000.0 > 0){
+                SDL_Delay(( 16666 - (thisframetime-lastframetime)) /1000.0);
+            }
+            gettimeofday(&currenttime,NULL);
+            std::cout << thisframetime-lastframetime << "\n";
+            lastframetime = currenttime.tv_sec*1000000 + currenttime.tv_usec;
+            std::cout << lastframetime << "\n";
 
 
         }
