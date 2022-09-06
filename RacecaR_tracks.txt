@@ -123,7 +123,7 @@ endtangent.pos = 0,0,-2048,0;
 
 #track-2
 
-.selfpos = 3072,0,0;
+.selfpos = 3072,0,-512;
 
 .totalnumcheckpoints = 6;
 .numlaps = 3;
@@ -195,7 +195,7 @@ endtangent.pos = 0,0,4096,0;
 
 #track1
 
-.selfpos = -4096,0,-2048;
+.selfpos = -4096,0,-1792;
 
 .totalnumcheckpoints = 15;
 .numlaps = 3;
@@ -344,7 +344,7 @@ endtangent.pos[0] = 0,0,-4096,0;
 
 #track2
 
-.selfpos = 4096,0,-4096;
+.selfpos = 3840,0,-4096;
 
 .totalnumcheckpoints = 14;
 .numlaps = 3;

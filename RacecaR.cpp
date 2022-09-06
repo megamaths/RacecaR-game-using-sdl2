@@ -1287,18 +1287,18 @@ class road{
 
             double scaler = 32/2048.0;
 
-            SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth*3/4,(lastpoint.pos[2])*scaler+dispheight*3/4,
-                                (startleftpoint.pos[0])*scaler+dispwidth*3/4,(startleftpoint.pos[2])*scaler+dispheight*3/4);
-            SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth*3/4,(lastpoint.pos[2])*scaler+dispheight*3/4,
-                                (startrightpoint.pos[0])*scaler+dispwidth*3/4,(startrightpoint.pos[2])*scaler+dispheight*3/4);
+            SDL_RenderDrawLine(renderer,-(lastpoint.pos[0])*scaler+dispwidth*3/4,(lastpoint.pos[2])*scaler+dispheight*3/4,// - added so left means left (rev x)
+                                -(startleftpoint.pos[0])*scaler+dispwidth*3/4,(startleftpoint.pos[2])*scaler+dispheight*3/4);
+            SDL_RenderDrawLine(renderer,-(lastpoint.pos[0])*scaler+dispwidth*3/4,(lastpoint.pos[2])*scaler+dispheight*3/4,
+                                -(startrightpoint.pos[0])*scaler+dispwidth*3/4,(startrightpoint.pos[2])*scaler+dispheight*3/4);
 
             for (int segnum = 1; segnum <= length/spacing; segnum++){
                 
                 double ratio = segnum*spacing/length;
                 hyperpoint nextpoint = getposofroad(ratio);
 
-                SDL_RenderDrawLine(renderer,(lastpoint.pos[0])*scaler+dispwidth*3/4,(lastpoint.pos[2])*scaler+dispheight*3/4,
-                                        (nextpoint.pos[0])*scaler+dispwidth*3/4,(nextpoint.pos[2])*scaler+dispheight*3/4);
+                SDL_RenderDrawLine(renderer,-(lastpoint.pos[0])*scaler+dispwidth*3/4,(lastpoint.pos[2])*scaler+dispheight*3/4,
+                                        -(nextpoint.pos[0])*scaler+dispwidth*3/4,(nextpoint.pos[2])*scaler+dispheight*3/4);
 
 
                 point newleftpoint = leftpoints[segnum];
@@ -1309,10 +1309,10 @@ class road{
 
                 point lastrightpoint = rightpoints[segnum-1];
 
-                SDL_RenderDrawLine(renderer,(nextpoint.pos[0])*scaler+dispwidth*3/4,(nextpoint.pos[2])*scaler+dispheight*3/4,
-                                (newleftpoint.pos[0])*scaler+dispwidth*3/4,(newleftpoint.pos[2])*scaler+dispheight*3/4);
-                SDL_RenderDrawLine(renderer,(nextpoint.pos[0])*scaler+dispwidth*3/4,(nextpoint.pos[2])*scaler+dispheight*3/4,
-                                (newrightpoint.pos[0])*scaler+dispwidth*3/4,(newrightpoint.pos[2])*scaler+dispheight*3/4);
+                SDL_RenderDrawLine(renderer,-(nextpoint.pos[0])*scaler+dispwidth*3/4,(nextpoint.pos[2])*scaler+dispheight*3/4,
+                                -(newleftpoint.pos[0])*scaler+dispwidth*3/4,(newleftpoint.pos[2])*scaler+dispheight*3/4);
+                SDL_RenderDrawLine(renderer,-(nextpoint.pos[0])*scaler+dispwidth*3/4,(nextpoint.pos[2])*scaler+dispheight*3/4,
+                                -(newrightpoint.pos[0])*scaler+dispwidth*3/4,(newrightpoint.pos[2])*scaler+dispheight*3/4);
                 
                 lastpoint.pos[0] = nextpoint.pos[0];
                 lastpoint.pos[2] = nextpoint.pos[2];
@@ -1946,9 +1946,19 @@ class player{
             premove(momentum[0],momentum[1],momentum[2]); // keep momentum
             //std::cout << momentum[0] << " " << momentum[1] << " " << momentum[2] << "\n";
 
+            if (currenttrackid == -1){
+                needtomove[0] = needtomove[0]*0.5;
+                needtomove[1] = needtomove[1]*0.5;
+                needtomove[2] = needtomove[2]*0.5;
+            }
             selfpos[0] = selfpos[0] + needtomove[0];
             selfpos[1] = selfpos[1] + needtomove[1];
             selfpos[2] = selfpos[2] + needtomove[2];
+            if (currenttrackid == -1){
+                needtomove[0] = needtomove[0]*2;
+                needtomove[1] = needtomove[1]*2;
+                needtomove[2] = needtomove[2]*2;
+            }
         }
 
         void turnrotate(double x, double y){
@@ -2051,8 +2061,8 @@ class player{
 
         void speedcheck(){ // this works out friction and stuff on the car and slows it
             double frictionco = 0.025;
-            maxspeed = 16;
-            revspeed = 16;
+            maxspeed = 32;
+            revspeed = 24;
             for (int i = 0 ; i < maintrack.size(); i++){
                 if (maintrack[i]->isontrack(selfpos)){
                     frictionco = 0.05;
@@ -2071,7 +2081,7 @@ class player{
                 speed = -speed;
             }
 
-            frictionco = (frictionco+abs(rotspeed)/20);
+            frictionco = (frictionco+abs(rotspeed)/8);
 
             //std::cout << speed << " speed\n";
             if (speed == 0){}
@@ -2239,7 +2249,15 @@ class player{
             if (currenttrackid != -1){
                 if (maintrack[currenttrackid]->isontrack(selfpos)){
                     double height = maintrack[currenttrackid]->trackheight(selfpos);
-                    selfpos[1] = height;
+                    if (abs(selfpos[1]-height) < 64){
+                        selfpos[1] = height;
+                    }
+                    else if (selfpos[1] > height){
+                        selfpos[1] = selfpos[1] -1;
+                    }
+                    else if (selfpos[1] < height){
+                        selfpos[1] = selfpos[1] +1;
+                    }
 
                     double differentpos[3] = {selfpos[0]+pointing[0],selfpos[1],selfpos[2]+pointing[2]};
                     double differentheight = maintrack[currenttrackid]->trackheight(differentpos);
@@ -2451,12 +2469,8 @@ class player{
 
             speedcheck();
 
-            
-
-
             move();
             
-
             turnrotate(0,0);// used to reduce turn speed and update vars
 
             correctcamerapos();
@@ -3614,15 +3628,15 @@ int main(int argc, char **argv)
             
 
             SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4 -1, mainplayer.selfpos[2]*scaler+dispheight*3/4 -1);
-            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4 -1, mainplayer.selfpos[2]*scaler+dispheight*3/4);
-            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4 -1, mainplayer.selfpos[2]*scaler+dispheight*3/4 +1);
-            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4, mainplayer.selfpos[2]*scaler+dispheight*3/4 -1);
-            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4, mainplayer.selfpos[2]*scaler+dispheight*3/4);
-            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4, mainplayer.selfpos[2]*scaler+dispheight*3/4 +1);
-            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4 +1, mainplayer.selfpos[2]*scaler+dispheight*3/4 -1);
-            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4 +1, mainplayer.selfpos[2]*scaler+dispheight*3/4);
-            SDL_RenderDrawPoint(renderer, mainplayer.selfpos[0]*scaler+dispwidth*3/4 +1, mainplayer.selfpos[2]*scaler+dispheight*3/4 +1);
+            SDL_RenderDrawPoint(renderer, -mainplayer.selfpos[0]*scaler+dispwidth*3/4 -1, mainplayer.selfpos[2]*scaler+dispheight*3/4 -1);// neg x for rev it
+            SDL_RenderDrawPoint(renderer, -mainplayer.selfpos[0]*scaler+dispwidth*3/4 -1, mainplayer.selfpos[2]*scaler+dispheight*3/4);
+            SDL_RenderDrawPoint(renderer, -mainplayer.selfpos[0]*scaler+dispwidth*3/4 -1, mainplayer.selfpos[2]*scaler+dispheight*3/4 +1);
+            SDL_RenderDrawPoint(renderer, -mainplayer.selfpos[0]*scaler+dispwidth*3/4, mainplayer.selfpos[2]*scaler+dispheight*3/4 -1);
+            SDL_RenderDrawPoint(renderer, -mainplayer.selfpos[0]*scaler+dispwidth*3/4, mainplayer.selfpos[2]*scaler+dispheight*3/4);
+            SDL_RenderDrawPoint(renderer, -mainplayer.selfpos[0]*scaler+dispwidth*3/4, mainplayer.selfpos[2]*scaler+dispheight*3/4 +1);
+            SDL_RenderDrawPoint(renderer, -mainplayer.selfpos[0]*scaler+dispwidth*3/4 +1, mainplayer.selfpos[2]*scaler+dispheight*3/4 -1);
+            SDL_RenderDrawPoint(renderer, -mainplayer.selfpos[0]*scaler+dispwidth*3/4 +1, mainplayer.selfpos[2]*scaler+dispheight*3/4);
+            SDL_RenderDrawPoint(renderer, -mainplayer.selfpos[0]*scaler+dispwidth*3/4 +1, mainplayer.selfpos[2]*scaler+dispheight*3/4 +1);
 
             SDL_RenderDrawPoint(renderer, dispwidth / 2, dispheight/2);
 
