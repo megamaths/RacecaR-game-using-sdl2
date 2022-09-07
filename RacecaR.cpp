@@ -3113,7 +3113,14 @@ bool finishedrace(){
 
 
 
-bool startup(){ // basic set up
+bool startup(bool accelerated){ // basic set up
+
+    if (renderer != NULL){
+        SDL_DestroyRenderer(renderer);
+    }
+    if (window != NULL){
+        SDL_DestroyWindow( window );
+    }
 
 
     window = SDL_CreateWindow( "RacecaR", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, dispwidth, dispheight, SDL_WINDOW_SHOWN );
@@ -3122,7 +3129,13 @@ bool startup(){ // basic set up
         std::cout << "Window could not be created! SDL_Error: " << SDL_GetError() << "\n";
         return false;
     }
-    renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED);
+    if (accelerated){
+        renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED);
+        
+    }
+    else{
+        renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_SOFTWARE);
+    }
     if( renderer == NULL ){
         std::cout << "renderer could not be created! SDL_Error: " << SDL_GetError() << "\n";
         return false;
@@ -3149,13 +3162,12 @@ void shutdown(){ //basic closing thing
 
 int main(int argc, char **argv)
 {
-    if (startup())
+    if (startup(true))
     {
         screenSurface = SDL_GetWindowSurface( window );
-        if (screenSurface == NULL){
-            renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_SOFTWARE );
-            if( renderer == NULL ){
-                std::cout << "renderer could not be recreated! SDL_Error: " << SDL_GetError() << "\n";
+        if (true){
+            if (!startup(false)){
+                std::cout << "error recreating renderer 2nd time\n";
             }
         }
         SDL_SetRenderDrawColor( renderer, 0xFF*lightshade[0], 0xFF*lightshade[1], 0xFF*lightshade[2], 0xFF );
