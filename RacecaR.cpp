@@ -3122,7 +3122,7 @@ bool startup(){ // basic set up
         std::cout << "Window could not be created! SDL_Error: " << SDL_GetError() << "\n";
         return false;
     }
-    renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED );
+    renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_ACCELERATED);
     if( renderer == NULL ){
         std::cout << "renderer could not be created! SDL_Error: " << SDL_GetError() << "\n";
         return false;
@@ -3152,6 +3152,12 @@ int main(int argc, char **argv)
     if (startup())
     {
         screenSurface = SDL_GetWindowSurface( window );
+        if (screenSurface == NULL){
+            renderer = SDL_CreateRenderer( window, -1, SDL_RENDERER_SOFTWARE );
+            if( renderer == NULL ){
+                std::cout << "renderer could not be recreated! SDL_Error: " << SDL_GetError() << "\n";
+            }
+        }
         SDL_SetRenderDrawColor( renderer, 0xFF*lightshade[0], 0xFF*lightshade[1], 0xFF*lightshade[2], 0xFF );
 
         bool quit = false;
@@ -3652,8 +3658,6 @@ int main(int argc, char **argv)
             SDL_RenderDrawPoint(renderer, -mainplayer.selfpos[0]*scaler+dispwidth*3/4 +1, mainplayer.selfpos[2]*scaler+dispheight*3/4 -1);
             SDL_RenderDrawPoint(renderer, -mainplayer.selfpos[0]*scaler+dispwidth*3/4 +1, mainplayer.selfpos[2]*scaler+dispheight*3/4);
             SDL_RenderDrawPoint(renderer, -mainplayer.selfpos[0]*scaler+dispwidth*3/4 +1, mainplayer.selfpos[2]*scaler+dispheight*3/4 +1);
-
-            SDL_RenderDrawPoint(renderer, dispwidth / 2, dispheight/2);
 
             SDL_RenderPresent( renderer ); //update renderer ??
             
