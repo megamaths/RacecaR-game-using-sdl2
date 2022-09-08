@@ -2068,13 +2068,13 @@ class player{
 
         void speedcheck(){ // this works out friction and stuff on the car and slows it
             double frictionco = 0.025;
-            maxspeed = 32;
-            revspeed = 24;
+            maxspeed = 24;
+            revspeed = 8;
             for (int i = 0 ; i < maintrack.size(); i++){
                 if (maintrack[i]->isontrack(selfpos)){
                     frictionco = 0.05;
                     maxspeed = 48;
-                    revspeed = 24;
+                    revspeed = 12;
                 }
             }
 
@@ -3165,10 +3165,11 @@ int main(int argc, char **argv)
     if (startup(true))
     {
         screenSurface = SDL_GetWindowSurface( window );
-        if (true){
+        if (screenSurface == NULL){ // hardware accelerated is not available
             if (!startup(false)){
                 std::cout << "error recreating renderer 2nd time\n";
             }
+            screenSurface = SDL_GetWindowSurface( window );
         }
         SDL_SetRenderDrawColor( renderer, 0xFF*lightshade[0], 0xFF*lightshade[1], 0xFF*lightshade[2], 0xFF );
 
@@ -3504,7 +3505,7 @@ int main(int argc, char **argv)
                 mainplayer.accelerate(0.1);}
             if( currentKeyStates[ SDL_SCANCODE_S ] ){
                 //std::cout << "S";
-                mainplayer.accelerate(-0.1);}
+                mainplayer.accelerate(-0.2);} // faster slowdown than speed up
             /*if( currentKeyStates[ SDL_SCANCODE_A ] ){// strafe in car hard
                 std::cout << "A";
                 mainplayer.sideaccelerate(-0.25);}
